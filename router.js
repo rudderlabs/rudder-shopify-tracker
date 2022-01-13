@@ -6,16 +6,16 @@ let d = fs.readFileSync("./code.js", {
 });
 const router = new Router();
 
-router.get('/:writeKey', ctx => {
-  const { writeKey } = ctx.params;
-  if (!writeKey) {
-    ctx.response.body = {
-      error: 'writeKey is invalid or missing'
-    };
-    ctx.status = 400;
-    return ctx;
-  }
-  d = d.replace("writeKey", writeKey);
+router.get('/', ctx => {
+  // const { writeKey } = ctx.params;
+  // if (!writeKey) {
+  //   ctx.response.body = {
+  //     error: 'writeKey is invalid or missing'
+  //   };
+  //   ctx.status = 400;
+  //   return ctx;
+  // }
+  // d = d.replace("writeKey", writeKey);
   ctx.response.body = d;
   ctx.set("Content-Type", "application/javascript");
   return ctx;

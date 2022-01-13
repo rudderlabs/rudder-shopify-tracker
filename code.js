@@ -23,8 +23,8 @@
       };
     })(method);
   }
-  rudderanalytics.load("writeKey", "http://localhost:8080", {
-    configUrl: "https://api.rudderlabs.com",
+  rudderanalytics.load("1psCRd30BvCtqwBwZVnPR2emyBL", "https://hosted-dev-dataplane.dev-rudder.rudderlabs.com", {
+    configUrl: "https://api.dev.rudderlabs.com",
     logLevel: "DEBUG",
   });
   console.log("end of loader script");
