@@ -7,15 +7,20 @@ let d = fs.readFileSync("./code.js", {
 const router = new Router();
 
 router.get('/', ctx => {
-  // const { writeKey } = ctx.params;
-  // if (!writeKey) {
-  //   ctx.response.body = {
-  //     error: 'writeKey is invalid or missing'
-  //   };
-  //   ctx.status = 400;
-  //   return ctx;
-  // }
-  // d = d.replace("writeKey", writeKey);
+  // TODO: always set prod config-be url when app is in production
+  // only take in writeKey and DataPlane Url
+  
+  const { writeKey, dataPlaneUrl, configBackendUrl } = ctx.request.query;
+  if (!writeKey || !dataPlaneUrl || !configBackendUrl) {
+    ctx.response.body = {
+      error: 'writeKey or dataPlaneUrl or configBackendUrl is invalid or missing'
+    };
+    ctx.status = 400;
+    return ctx;
+  }
+  d = d.replace("writeKey", writeKey);
+  d = d.replace("dataPlaneUrl", dataPlaneUrl);
+  d = d.replace("configBackendUrl", configBackendUrl);
   ctx.response.body = d;
   ctx.set("Content-Type", "application/javascript");
   return ctx;
