@@ -1,4 +1,5 @@
 (function () {
+  console.log("init code start");
   const pages = {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
@@ -311,6 +312,7 @@
     return defer.promise();
   }
 
+  console.log("init code end");
   return {
     deviceModeInit
   };

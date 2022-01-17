@@ -21,10 +21,13 @@ router.get('/load', ctx => {
     ctx.status = 400;
     return ctx;
   }
-  const configUrl = configBackendUrl || "https://api.rudderstack.com";
+  console.log("writeKey", writeKey);
+  console.log("dataplaneUrl", dataPlaneUrl);
+  const configUrl = configBackendUrl || "api.dev.rudderlabs.com";
   d = d.replace("writeKey", writeKey);
   d = d.replace("dataPlaneUrl", dataPlaneUrl);
   d = d.replace("configBackendUrl", configUrl);
+  console.log("d", d);
   ctx.response.body = d;
   ctx.set("Content-Type", "application/javascript");
   return ctx;
