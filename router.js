@@ -1,5 +1,6 @@
 const fs = require("fs");
 const Router = require("koa-router");
+const axios = require("axios");
 
 const router = new Router();
 
@@ -7,15 +8,20 @@ const initCode = fs.readFileSync("./deviceModeInit.js", {
   encoding: "utf-8",
 });
 
-router.get('/load', ctx => {
+router.get('/load', async ctx => {
   // TODO: always set prod config-be url when app is in production
   // only take in writeKey and DataPlane Url
+  let rudderJsCode;
+  try {
+    const resp = await axios.get("https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js");
+    rudderJsCode = resp.data;
+  } catch (err) {
+    ctx.response.body = "failed to fetch rudder-js-sdk";
+    ctx.status = 400;
+    return ctx;
+  }
 
   let d = fs.readFileSync("./loadingCode.js", {
-    encoding: "utf-8",
-  });
-
-  const rudderJsCode = fs.readFileSync("./rudder-js-code.js", {
     encoding: "utf-8",
   });
 
