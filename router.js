@@ -3,11 +3,23 @@ const Router = require("koa-router");
 
 const router = new Router();
 
+const initCode = fs.readFileSync("./deviceModeInit.js", {
+  encoding: "utf-8",
+});
+
 router.get('/load', ctx => {
   // TODO: always set prod config-be url when app is in production
   // only take in writeKey and DataPlane Url
 
   let d = fs.readFileSync("./loadingCode.js", {
+    encoding: "utf-8",
+  });
+
+  const rudderJsCode = fs.readFileSync("./rudder-js-code.js", {
+    encoding: "utf-8",
+  });
+
+  const deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
     encoding: "utf-8",
   });
   
@@ -26,15 +38,12 @@ router.get('/load', ctx => {
   d = d.replace("dataPlaneUrl", dataPlaneUrl);
   d = d.replace("configBackendUrl", configUrl);
   console.log("d", d);
-  ctx.response.body = d;
+  ctx.response.body = d + rudderJsCode + deviceModeInit;
   ctx.set("Content-Type", "application/javascript");
   return ctx;
 });
 
 router.get('/init', ctx => {
-  let initCode = fs.readFileSync("./deviceModeInit.js", {
-    encoding: "utf-8",
-  });
   // returns the device mode init code for the store
   ctx.response.body = initCode;
   ctx.set("Content-Type", "application/javascript");

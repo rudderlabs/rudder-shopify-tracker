@@ -1,5 +1,4 @@
-(function () {
-  console.log("init code start");
+var rudderTracking = (function () {
   const pages = {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
@@ -20,9 +19,8 @@
     { dest: "price", src: "price" },
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variant_title" },
-    { dest: "brand", src: "" },
+    { dest: "brand", src: "vendor" },
     { dest: "coupon", src: "" },
-    { dest: "currency", src: "" },
     { dest: "url", src: "url" },
     { dest: "image_url", src: "image" },
   ];
@@ -33,10 +31,9 @@
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variants" },
     { dest: "url", src: "url" },
-    { dest: "image_url", src: "image.src" },
   ];
 
-  function deviceModeInit() {
+  function init() {
     pageCurrency = Shopify.currency.active;
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
@@ -50,6 +47,7 @@
     // buy now :: data-testid="Checkout-button" $('form[action="/cart/add"] [type="button"]')
   }
 
+  // doesn't seem to work
   function trackProductSearch() {
     const query =
       rs$("button[data-search-form-submit]")
@@ -77,6 +75,7 @@
 
     switch (name) {
       case "/products/":
+        console.log("/products/");
         productPage(val);
         break;
 
@@ -88,17 +87,21 @@
         cartPage(val);
         break;
 
-      case "/thank_you":
-        checkoutStepCompleted(val);
-        break;
+      // to be removed
+      // sdk is not allowed to be loaded on payment pages
+      // case "/thank_you":
+      //   checkoutStepCompleted(val);
+      //   break;
 
-      case "/account/register":
-        registerPage();
-        break;
+      // not implemented
+      // case "/account/register":
+      //   registerPage();
+      //   break;
 
-      case "/account":
-        rudderanalytics.identify(val);
-        break;
+      // // flagging this. implementation is incorrect
+      // case "/account":
+      //   rudderanalytics.identify(val);
+      //   break;
 
       default:
         console.log("RudderStack does not track this page");
@@ -165,12 +168,45 @@
     }
   }
 
+  // mapping udpated
+  // but form action name is hardcoded. need to see on this
+  // has potential to break
+  /**
+   * Note: action defaults to this. These cant be changed. But new action can be added
+   * by a user in .liquid file
+   */
   function userRegistered() {
     const userEmail = rs$('form[action="/account"] [type="email"]').val();
-    rudderanalytics.track("User Registered", userEmail || "");
+    const firstName = rs$('form[action="/account"] [name="customer[first_name]"]').val();
+    const lastName = rs$('form[action="/account"] [name="customer[last_name]"]').val();
+    rudderanalytics.identify({ 
+      email: userEmail || "",
+      firstName,
+      lastName
+    });
   }
 
+  // mapping is fixed
   function cartPage(event) {
+    // mapping a single cart item object to rudder format
+    function cartItemMapper(payload, mappingObject) {
+      const mappedPayload = {};
+      const mappedKeys = new Set();
+      mappingObject.forEach((mapping, index) => {
+        const { dest, src } = mapping;
+        mappedKeys.add(src);
+        mappedPayload[dest] = payload[src];
+      });
+
+      // adding other free flowing keys
+      Object.keys(payload).forEach((key) => {
+        if (!mappedKeys.has(key)) {
+          mappedPayload[key] = payload[key];
+        }
+      });
+      return mappedPayload;
+    }
+
     const url = getUrl();
     _getJsonData(url)
       .done(function (data) {
@@ -180,12 +216,14 @@
         const payload = {
           products: [],
         };
-        items.forEach((i, pos) => {
-          const product = propertyMapping(items, cartItemMapping);
+
+        items.forEach((item, pos) => {
+          const product = cartItemMapper(item, cartItemMapping);
           product.position = pos + 1;
           product.currency = currency;
           payload.products.push(product);
         });
+
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
@@ -193,11 +231,13 @@
       });
   }
 
+  // mapping seems fine
   function handleProductClicked() {
     const url = `${this.href}.json`;
 
     _getJsonData(url)
       .done(function (data) {
+        console.log("[Product Clicked] data.product", data.product);
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
         payload.sku = payload.variant
@@ -217,6 +257,7 @@
       });
   }
 
+  // mapping seems fine
   function productListPage(event) {
     rs$("a")
       .filter((a, b) => b.href.indexOf("/products") > -1)
@@ -276,23 +317,28 @@
       });
   }
 
+  // mapping seems fine
   function addToCart() {
     rudderanalytics.track("Product Added", this);
   }
 
+  // triggered on clicking buy now
   function trackCheckoutStarted() {
     rudderanalytics.track("Checkout Started", this);
   }
-  function checkoutStepCompleted(val) {
-    const payload = {
-      checkout_id: Shopify.Checkout.token,
-      step: 4,
-      shipping_method: Shopify.checkout.shipping_rate.title,
-      payment_method:
-        Shopify.checkout.credit_card instanceof Object ? "card" : "others",
-    };
-    rudderanalytics.track(val, payload);
-  }
+
+  // sdk is not allowed to load in checkout page
+  // to be removed
+  // function checkoutStepCompleted(val) {
+  //   const payload = {
+  //     checkout_id: Shopify.Checkout.token,
+  //     step: 4,
+  //     shipping_method: Shopify.checkout.shipping_rate.title,
+  //     payment_method:
+  //       Shopify.checkout.credit_card instanceof Object ? "card" : "others",
+  //   };
+  //   rudderanalytics.track(val, payload);
+  // }
 
   function _getJsonData(url) {
     var defer = rs$.Deferred();
@@ -312,8 +358,30 @@
     return defer.promise();
   }
 
-  console.log("init code end");
-  return {
-    deviceModeInit
-  };
+  // return {
+  //   init: init,
+  // };
+
+  var rs$;
+  var script = document.createElement("script");
+  script.setAttribute(
+    "src",
+    "//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
+  );
+  document.head.appendChild(script);
+  rs$ = $.noConflict(true);
+  init();
 })();
+
+// Trigger OnLoad for Scripts
+// var rs$;
+// var script = document.createElement("script");
+// script.setAttribute(
+//   "src",
+//   "//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
+// );
+// script.addEventListener("load", function () {
+//   rs$ = $.noConflict(true);
+//   rudderTracking.init();
+// });
+// document.head.appendChild(script);
