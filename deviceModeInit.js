@@ -20,13 +20,24 @@ var rudderTracking = (function () {
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variant_title" },
     { dest: "brand", src: "vendor" },
-    { dest: "coupon", src: "" },
     { dest: "url", src: "url" },
     { dest: "image_url", src: "image" },
   ];
 
+  const cartPropertyKeys = new Set([
+    "note",
+    "original_total_price",
+    "requires_shipping",
+    "token",
+    "total_discount",
+    "total_price",
+    "total_weight",
+    "item_count"
+  ]);
+
   const productMapping = [
     { dest: "product_id", src: "id" },
+    { dest: "sku", src: "sku" },
     { dest: "name", src: "title" },
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variants" },
@@ -217,6 +228,12 @@ var rudderTracking = (function () {
           products: [],
         };
 
+        Object.keys(data).forEach(key => {
+          if (cartPropertyKeys.has(key)) {
+            payload[key] = data[key];
+          }
+        });
+
         items.forEach((item, pos) => {
           const product = cartItemMapper(item, cartItemMapping);
           product.position = pos + 1;
@@ -240,9 +257,9 @@ var rudderTracking = (function () {
         console.log("[Product Clicked] data.product", data.product);
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        payload.sku = payload.variant
-          .map((item) => item.sku)
-          .reduce((prev, next) => prev + next);
+        // payload.sku = payload.variant
+        //   .map((item) => item.sku)
+        //   .reduce((prev, next) => prev + next);
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$("a")
