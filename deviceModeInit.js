@@ -11,7 +11,7 @@ var rudderTracking = (function () {
   const pageURL = window.location.href;
   let pageCurrency = "";
 
-  const productMapping = [
+  const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
     { dest: "sku", src: "sku" },
     { dest: "quantity", src: "quantity" },
@@ -31,16 +31,18 @@ var rudderTracking = (function () {
     "token",
     "total_discount",
     "total_price",
-    "total_weight"
+    "total_weight",
+    "item_count"
   ]);
 
-  // const productMapping = [
-  //   { dest: "product_id", src: "id" },
-  //   { dest: "name", src: "title" },
-  //   { dest: "category", src: "product_type" },
-  //   { dest: "variant", src: "variants" },
-  //   { dest: "url", src: "url" },
-  // ];
+  const productMapping = [
+    { dest: "product_id", src: "id" },
+    { dest: "sku", src: "sku" },
+    { dest: "name", src: "title" },
+    { dest: "category", src: "product_type" },
+    { dest: "variant", src: "variants" },
+    { dest: "url", src: "url" },
+  ];
 
   function init() {
     pageCurrency = Shopify.currency.active;
@@ -233,7 +235,7 @@ var rudderTracking = (function () {
         });
 
         items.forEach((item, pos) => {
-          const product = cartItemMapper(item, productMapping);
+          const product = cartItemMapper(item, cartItemMapping);
           product.position = pos + 1;
           product.currency = currency;
           payload.products.push(product);
@@ -255,9 +257,9 @@ var rudderTracking = (function () {
         console.log("[Product Clicked] data.product", data.product);
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        payload.sku = payload.variant
-          .map((item) => item.sku)
-          .reduce((prev, next) => prev + next);
+        // payload.sku = payload.variant
+        //   .map((item) => item.sku)
+        //   .reduce((prev, next) => prev + next);
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$("a")
