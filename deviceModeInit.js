@@ -11,7 +11,7 @@ var rudderTracking = (function () {
   const pageURL = window.location.href;
   let pageCurrency = "";
 
-  const cartItemMapping = [
+  const productMapping = [
     { dest: "product_id", src: "product_id" },
     { dest: "sku", src: "sku" },
     { dest: "quantity", src: "quantity" },
@@ -20,18 +20,27 @@ var rudderTracking = (function () {
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variant_title" },
     { dest: "brand", src: "vendor" },
-    { dest: "coupon", src: "" },
     { dest: "url", src: "url" },
     { dest: "image_url", src: "image" },
   ];
 
-  const productMapping = [
-    { dest: "product_id", src: "id" },
-    { dest: "name", src: "title" },
-    { dest: "category", src: "product_type" },
-    { dest: "variant", src: "variants" },
-    { dest: "url", src: "url" },
-  ];
+  const cartPropertyKeys = new Set([
+    "note",
+    "original_total_price",
+    "requires_shipping",
+    "token",
+    "total_discount",
+    "total_price",
+    "total_weight"
+  ]);
+
+  // const productMapping = [
+  //   { dest: "product_id", src: "id" },
+  //   { dest: "name", src: "title" },
+  //   { dest: "category", src: "product_type" },
+  //   { dest: "variant", src: "variants" },
+  //   { dest: "url", src: "url" },
+  // ];
 
   function init() {
     pageCurrency = Shopify.currency.active;
@@ -217,8 +226,14 @@ var rudderTracking = (function () {
           products: [],
         };
 
+        Object.keys(data).forEach(key => {
+          if (cartPropertyKeys.has(key)) {
+            payload[key] = data[key];
+          }
+        });
+
         items.forEach((item, pos) => {
-          const product = cartItemMapper(item, cartItemMapping);
+          const product = cartItemMapper(item, productMapping);
           product.position = pos + 1;
           product.currency = currency;
           payload.products.push(product);
