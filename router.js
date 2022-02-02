@@ -1,19 +1,21 @@
 const fs = require("fs");
 const Router = require("koa-router");
 const axios = require("axios");
+require("dotenv").config();
 
 const router = new Router();
 
-const initCode = fs.readFileSync("./deviceModeInit.js", {
+const configUrl = process.env.CONFIG_BACKEND_URL || "https://api.rudderstack.com";
+const jsSdkCdnUrl = process.env.JS_SDK_CDN || "https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js";
+const deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
   encoding: "utf-8",
 });
 
 router.get('/load', async ctx => {
-  // TODO: always set prod config-be url when app is in production
-  // only take in writeKey and DataPlane Url
+  // only takes in writeKey and DataPlane Url
   let rudderJsCode;
   try {
-    const resp = await axios.get("https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js");
+    const resp = await axios.get(jsSdkCdnUrl);
     rudderJsCode = resp.data;
   } catch (err) {
     ctx.response.body = "failed to fetch rudder-js-sdk";
@@ -25,11 +27,7 @@ router.get('/load', async ctx => {
     encoding: "utf-8",
   });
 
-  const deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
-    encoding: "utf-8",
-  });
-  
-  const { writeKey, dataPlaneUrl, configBackendUrl } = ctx.request.query;
+  const { writeKey, dataPlaneUrl } = ctx.request.query;
   if (!writeKey || !dataPlaneUrl) {
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing'
@@ -39,20 +37,18 @@ router.get('/load', async ctx => {
   }
   console.log("writeKey", writeKey);
   console.log("dataplaneUrl", dataPlaneUrl);
-  const configUrl = configBackendUrl || "api.dev.rudderlabs.com";
   d = d.replace("writeKey", writeKey);
   d = d.replace("dataPlaneUrl", dataPlaneUrl);
   d = d.replace("configBackendUrl", configUrl);
-  console.log("d", d);
+  // console.log("d", d);
   ctx.response.body = d + rudderJsCode + deviceModeInit;
   ctx.set("Content-Type", "application/javascript");
   return ctx;
 });
 
-router.get('/init', ctx => {
-  // returns the device mode init code for the store
-  ctx.response.body = initCode;
-  ctx.set("Content-Type", "application/javascript");
+router.get('/health', ctx => {
+  ctx.response.body = "Server is Up";
+  ctx.status = 200;
   return ctx;
 });
 
