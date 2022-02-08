@@ -26,7 +26,7 @@
     })(method);
   }
   rudderanalytics.load("writeKey", "https://dataPlaneUrl", {
-    configUrl: "https://configBackendUrl",
+    configUrl: "configBackendUrl",
     logLevel: "DEBUG",
   });
   console.log("end of loader script");

@@ -386,8 +386,12 @@ var rudderTracking = (function () {
     "//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
   );
   document.head.appendChild(script);
-  rs$ = $.noConflict(true);
-  init();
+  // rs$ = $.noConflict(true);
+  // init();
+  script.addEventListener("load", function () {
+    rs$ = $.noConflict(true);
+    init();
+  });
 })();
 
 // Trigger OnLoad for Scripts
