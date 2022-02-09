@@ -1,5 +1,5 @@
 (function () {
-  console.log("start of loader script");
+  // console.log("start of loader script");
   rudderanalytics = window.rudderanalytics = [];
 
   var methods = [
@@ -29,5 +29,5 @@
     configUrl: "configBackendUrl",
     logLevel: "DEBUG",
   });
-  console.log("end of loader script");
+  // console.log("end of loader script");
 })();
