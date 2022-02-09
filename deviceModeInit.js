@@ -170,10 +170,10 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
-      rs$('form[action="/account"] [type="submit"]').on(
-        "click",
-        userRegistered
-      );
+      // rs$('form[action="/account"] [type="submit"]').on(
+      //   "click",
+      //   userRegistered
+      // );
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
@@ -186,16 +186,18 @@ var rudderTracking = (function () {
    * Note: action defaults to this. These cant be changed. But new action can be added
    * by a user in .liquid file
    */
-  function userRegistered() {
-    const userEmail = rs$('form[action="/account"] [type="email"]').val();
-    const firstName = rs$('form[action="/account"] [name="customer[first_name]"]').val();
-    const lastName = rs$('form[action="/account"] [name="customer[last_name]"]').val();
-    rudderanalytics.identify({ 
-      email: userEmail || "",
-      firstName,
-      lastName
-    });
-  }
+  // removing identify from device mode. Cloud mode has support and has much more information
+  // in traits
+  // function userRegistered() {
+  //   const userEmail = rs$('form[action="/account"] [type="email"]').val();
+  //   const firstName = rs$('form[action="/account"] [name="customer[first_name]"]').val();
+  //   const lastName = rs$('form[action="/account"] [name="customer[last_name]"]').val();
+  //   rudderanalytics.identify({ 
+  //     email: userEmail || "",
+  //     firstName,
+  //     lastName
+  //   });
+  // }
 
   // mapping is fixed
   function cartPage(event) {
