@@ -23,7 +23,12 @@
 This application lets you connect your Shopify store with RudderStack. Use it to track event-level data from Shopify and send it to your preferred tooling platforms via RudderStack. 
 
 ## Overview
-This repo is a component of RudderStack Shopify App (https://github.com/rudderlabs/rudderstack-shopify-app).
+This repo is a component of RudderStack Shopify App (https://github.com/rudderlabs/rudderstack-shopify-app). The shoppify-app node server makes a request to this server with dataplane url and writekey. This server returns a wrapper on top of our js-sdk for client-side tracking for the shopify stores.
+
+### Get Started
+This is simple node server with koa router. Steps to run locally:
+1. npm install
+2. npm run start
 
 ## Features
 It is a smart tracking script which inserts into the Shopify store pages, and allows client-side tracking. Please note, this works in conjunction to the above-mentioned RudderStack Shopify App.
