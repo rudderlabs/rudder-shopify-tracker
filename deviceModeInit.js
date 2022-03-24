@@ -85,11 +85,13 @@ var rudderTracking = (function () {
     });
 
     switch (name) {
+      case "/products":
       case "/products/":
         console.log("/products/");
         productPage(val);
         break;
 
+      case "/collections":
       case "/collections/":
         productListPage(val);
         break;
