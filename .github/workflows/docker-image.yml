@@ -18,4 +18,4 @@ jobs:
     - name: Set timestamped version
       run: export VERSION="$(date '+%d%m%Y.%H%M%S')"
     - name: Build the Docker image
-      run: docker build -f Dockerfile -t rudderstack/rudder-shopify-tracker:${VERSION}
+      run: docker build -f Dockerfile -t rudderstack/rudder-shopify-tracker:$VERSION .
