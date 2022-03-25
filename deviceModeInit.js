@@ -92,17 +92,24 @@ var rudderTracking = (function () {
        */
       case "/products":
       case "/collections/":
-        // TODO: check if something is there after collections/ in the URL
-        // otherwise it a collections page and we dont track that
-        if (isProductListPage()) {
+        if(checkPostUrl("collections") === false) {
           productListPage(val);
         }
+        else {
+          console.log("RudderStack does not track Collections page.")
+        }
+
+        // if (isProductListPage()) {
+        //   productListPage(val);
+        // }
 
       case "/products/":
-        // TODO: check if something is there after products/ in the URL
-        // if not, then it is products page and not a single product, and we should 
-        // fire calls accordingly.
-        productPage(val);
+        if(checkPostUrl("products")) {
+          productListPage(val);
+        }
+        else {
+          productPage(val);
+        }
         break;
 
       case "/cart":
@@ -170,6 +177,13 @@ var rudderTracking = (function () {
       return true;
     }
     return false;
+  }
+  function checkPostUrl(str) {
+    let pathArray = window.location.pathname.split('/');
+    if(pathArray[pathArray.length -1] === str) {
+      return true;
+    }
+    return false
   }
 
   function getUrl() {
