@@ -1,0 +1,21 @@
+name: Docker Image CI for shopify-tracker
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Login to Dockerhub
+      run: docker login --username rudderlabs --password ${{ secrets.DOCKERHUB_PASSWORD }}
+    - name: Set timestamped version
+      run: export VERSION="$(date '+%d%m%Y.%H%M%S')"
+    - name: Build the Docker image
+      run: docker build -f Dockerfile -t rudderstack/rudder-shopify-tracker:$VERSION
