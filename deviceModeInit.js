@@ -81,7 +81,6 @@ var rudderTracking = (function () {
         if (isPage(p)) {
           name = p;
           mappedPageName = pages[p];
-          break;
         }
       }  
 
