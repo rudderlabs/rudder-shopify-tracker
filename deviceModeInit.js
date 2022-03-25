@@ -81,6 +81,7 @@ var rudderTracking = (function () {
         if (isPage(p)) {
           name = p;
           mappedPageName = pages[p];
+          break;
         }
       }  
 
@@ -130,6 +131,7 @@ var rudderTracking = (function () {
   function isPage(name) {
     return pageURL.indexOf(name) > -1 ? true : false;
   }
+  
   function trackProductPages (mappedPageName) {
     const pagePath = window.location.pathname
     if (pagePath === "/collections" || pagePath === "/products")
@@ -138,11 +140,11 @@ var rudderTracking = (function () {
     }
     else {
       const pagePathArr = pagePath.split("/");
-      if( pagePathArr[pagePathArr.length - 1] == "/products" ||
-          pagePathArr[pagePathArr.length - 2] == "/collection"  ) {
+      if( pagePathArr[pagePathArr.length - 1] == "products" ||
+          pagePathArr[pagePathArr.length - 2] == "collection"  ) {
             productListPage(mappedPageName);
         }
-      else if (pagePathArr[pagePathArr.length - 2] == "/products" ) {
+      else if (pagePathArr[pagePathArr.length - 2] == "products" ) {
             productPage(mappedPageName);
       }
     }
