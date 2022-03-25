@@ -92,19 +92,16 @@ var rudderTracking = (function () {
        */
       case "/products":
       case "/collections/":
-        if(checkPostUrl("collections") === false) {
+        if(checkPostUrl("/collections/") === false) {
           productListPage(val);
         }
         else {
           console.log("RudderStack does not track Collections page.")
         }
-
-        // if (isProductListPage()) {
-        //   productListPage(val);
-        // }
+        break;
 
       case "/products/":
-        if(checkPostUrl("products")) {
+        if(checkPostUrl("/products/")) {
           productListPage(val);
         }
         else {
