@@ -85,15 +85,16 @@ var rudderTracking = (function () {
     });
 
     switch (name) {
+      case "/collections":
+      case "/collections/":
+        if (isProductListPage) {
+          productListPage(val);
+        }
+
       case "/products":
       case "/products/":
         console.log("/products/");
         productPage(val);
-        break;
-
-      case "/collections":
-      case "/collections/":
-        productListPage(val);
         break;
 
       case "/cart":
@@ -149,6 +150,18 @@ var rudderTracking = (function () {
 
   function isPage(name) {
     return pageURL.indexOf(name) > -1 ? true : false;
+  }
+
+  // fire a track call only when both /collections and /products are present
+  // i.e at URL /collections/{collectionName}/products
+
+  function isProductListPage() {
+    let pathArray = window.location.pathname.split('/');
+    let pathArrayLength = pathArray.length();
+    if(pathArray[pathArrayLength-1] == "products") {
+      return true;
+    }
+    return false;
   }
 
   function getUrl() {
