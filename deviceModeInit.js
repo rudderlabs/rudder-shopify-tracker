@@ -76,58 +76,26 @@ var rudderTracking = (function () {
 
   function trackNamedPageView() {
     let name = "",
-      val = "";
-    Object.keys(pages).forEach((p) => {
-      if (isPage(p)) {
-        name = p;
-        val = pages[p];
-      }
-    });
+      mappedPageName = "";
+      for (const p of Object.keys(pages)) {
+        if (isPage(p)) {
+          name = p;
+          mappedPageName = pages[p];
+          break;
+        }
+      }  
 
     switch (name) {
-      /**
-       * We are actually not tracking collections but rather products
-       * /collections/{collectionName}/products --> This is the actual product list 
-       * that we intend to track
-       */
+
       case "/products":
       case "/collections/":
-        if(checkPostUrl("/collections/") === false) {
-          productListPage(val);
-        }
-        else {
-          console.log("RudderStack does not track Collections page.")
-        }
-        break;
-
       case "/products/":
-        if(checkPostUrl("/products/")) {
-          productListPage(val);
-        }
-        else {
-          productPage(val);
-        }
+        trackProductPages(mappedPageName);
         break;
 
       case "/cart":
-        cartPage(val);
+        cartPage(mappedPageName);
         break;
-
-      // to be removed
-      // sdk is not allowed to be loaded on payment pages
-      // case "/thank_you":
-      //   checkoutStepCompleted(val);
-      //   break;
-
-      // not implemented
-      // case "/account/register":
-      //   registerPage();
-      //   break;
-
-      // // flagging this. implementation is incorrect
-      // case "/account":
-      //   rudderanalytics.identify(val);
-      //   break;
 
       default:
         console.log("RudderStack does not track this page");
@@ -163,6 +131,23 @@ var rudderTracking = (function () {
   function isPage(name) {
     return pageURL.indexOf(name) > -1 ? true : false;
   }
+  function trackProductPages (mappedPageName) {
+    const pagePath = window.location.pathname
+    if (pagePath === "/collections" || pagePath === "/products")
+    {
+      console.log("RudderStack does not track this page");
+    }
+    else {
+      const pagePathArr = pagePath.split("/");
+      if( pagePathArr[pagePathArr.length - 1] == "/products" ||
+          pagePathArr[pagePathArr.length - 2] == "/collection"  ) {
+            productListPage(mappedPageName);
+        }
+      else if (pagePathArr[pagePathArr.length - 2] == "/products" ) {
+            productPage(mappedPageName);
+      }
+    }
+  }
 
   // fire a track call only when both /collections and /products are present
   // i.e at URL /collections/{collectionName}/products
@@ -175,12 +160,15 @@ var rudderTracking = (function () {
     }
     return false;
   }
-  function checkPostUrl(str) {
+  function startProductsTracking(str, val) {
     let pathArray = window.location.pathname.split('/');
-    if(pathArray[pathArray.length -1] === str) {
-      return true;
+    if(pathArray[pathArray.length -2] === "collections") {
+      productListPage(val);
     }
-    return false
+    else if (pathArray[pathArray.length - 2] === "products") {
+      productPage(val);
+    }
+    else if (pathArray)
   }
 
   function getUrl() {
