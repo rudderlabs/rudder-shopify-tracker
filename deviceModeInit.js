@@ -308,7 +308,8 @@ var rudderTracking = (function () {
         const payload = {
           products: [],
         };
-        data.products.forEach((product) => {
+        if (data.products) {
+          data.products.forEach((product) => {
           const p = propertyMapping(product, productMapping);
           p.currency = pageCurrency;
           p.sku = p.variant
@@ -316,9 +317,10 @@ var rudderTracking = (function () {
             .reduce((prev, next) => prev + next);
           p.price = p.variant[0].price;
           payload.products.push(p);
-        });
+          });
 
-        rudderanalytics.track(event, payload);
+          rudderanalytics.track(event, payload);
+        }
       })
       .fail(function (error) {
         console.log(error);
