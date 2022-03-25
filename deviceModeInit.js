@@ -54,8 +54,6 @@ var rudderTracking = (function () {
     trackNamedPageView();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
-
-    // buy now :: data-testid="Checkout-button" $('form[action="/cart/add"] [type="button"]')
   }
 
   // doesn't seem to work
@@ -76,43 +74,26 @@ var rudderTracking = (function () {
 
   function trackNamedPageView() {
     let name = "",
-      val = "";
-    Object.keys(pages).forEach((p) => {
-      if (isPage(p)) {
-        name = p;
-        val = pages[p];
-      }
-    });
+      mappedPageName = "";
+      for (const p of Object.keys(pages)) {
+        if (isPage(p)) {
+          name = p;
+          mappedPageName = pages[p];
+          break;
+        }
+      }  
 
     switch (name) {
-      case "/products/":
-        console.log("/products/");
-        productPage(val);
-        break;
 
+      case "/products":
       case "/collections/":
-        productListPage(val);
+      case "/products/":
+        trackProductPages(mappedPageName);
         break;
 
       case "/cart":
-        cartPage(val);
+        cartPage(mappedPageName);
         break;
-
-      // to be removed
-      // sdk is not allowed to be loaded on payment pages
-      // case "/thank_you":
-      //   checkoutStepCompleted(val);
-      //   break;
-
-      // not implemented
-      // case "/account/register":
-      //   registerPage();
-      //   break;
-
-      // // flagging this. implementation is incorrect
-      // case "/account":
-      //   rudderanalytics.identify(val);
-      //   break;
 
       default:
         console.log("RudderStack does not track this page");
@@ -149,6 +130,26 @@ var rudderTracking = (function () {
     return pageURL.indexOf(name) > -1 ? true : false;
   }
 
+  function trackProductPages (mappedPageName) {
+    const pagePath = window.location.pathname
+    if (pagePath === "/collections" || pagePath === "/products")
+    {
+      console.log("RudderStack does not track this page");
+    }
+    else {
+      const pagePathArr = pagePath.split("/");
+      // If the url is = /products or /collections/{collectionId}
+      if( pagePathArr[pagePathArr.length - 1] == "products" ||
+          pagePathArr[pagePathArr.length - 2] == "collections"  ) {
+            productListPage(mappedPageName);
+        }
+      // If the url is = /products/{productId}
+      else if (pagePathArr[pagePathArr.length - 2] == "products" ) {
+            productPage(mappedPageName);
+      }
+    }
+  }
+
   function getUrl() {
     return (
       (pageURL.indexOf("?") > -1 ? pageURL.split("?")[0] : pageURL) + ".json"
@@ -170,36 +171,11 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
-      // rs$('form[action="/account"] [type="submit"]').on(
-      //   "click",
-      //   userRegistered
-      // );
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
   }
 
-  // mapping udpated
-  // but form action name is hardcoded. need to see on this
-  // has potential to break
-  /**
-   * Note: action defaults to this. These cant be changed. But new action can be added
-   * by a user in .liquid file
-   */
-  // removing identify from device mode. Cloud mode has support and has much more information
-  // in traits
-  // function userRegistered() {
-  //   const userEmail = rs$('form[action="/account"] [type="email"]').val();
-  //   const firstName = rs$('form[action="/account"] [name="customer[first_name]"]').val();
-  //   const lastName = rs$('form[action="/account"] [name="customer[last_name]"]').val();
-  //   rudderanalytics.identify({ 
-  //     email: userEmail || "",
-  //     firstName,
-  //     lastName
-  //   });
-  // }
-
-  // mapping is fixed
   function cartPage(event) {
     // mapping a single cart item object to rudder format
     function cartItemMapper(payload, mappingObject) {
@@ -293,7 +269,8 @@ var rudderTracking = (function () {
         const payload = {
           products: [],
         };
-        data.products.forEach((product) => {
+        if (data.products) {
+          data.products.forEach((product) => {
           const p = propertyMapping(product, productMapping);
           p.currency = pageCurrency;
           p.sku = p.variant
@@ -301,9 +278,10 @@ var rudderTracking = (function () {
             .reduce((prev, next) => prev + next);
           p.price = p.variant[0].price;
           payload.products.push(p);
-        });
+          });
 
-        rudderanalytics.track(event, payload);
+          rudderanalytics.track(event, payload);
+        }
       })
       .fail(function (error) {
         console.log(error);
@@ -346,18 +324,6 @@ var rudderTracking = (function () {
     rudderanalytics.track("Checkout Started", this);
   }
 
-  // sdk is not allowed to load in checkout page
-  // to be removed
-  // function checkoutStepCompleted(val) {
-  //   const payload = {
-  //     checkout_id: Shopify.Checkout.token,
-  //     step: 4,
-  //     shipping_method: Shopify.checkout.shipping_rate.title,
-  //     payment_method:
-  //       Shopify.checkout.credit_card instanceof Object ? "card" : "others",
-  //   };
-  //   rudderanalytics.track(val, payload);
-  // }
 
   function _getJsonData(url) {
     var defer = rs$.Deferred();
@@ -396,15 +362,3 @@ var rudderTracking = (function () {
   });
 })();
 
-// Trigger OnLoad for Scripts
-// var rs$;
-// var script = document.createElement("script");
-// script.setAttribute(
-//   "src",
-//   "//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
-// );
-// script.addEventListener("load", function () {
-//   rs$ = $.noConflict(true);
-//   rudderTracking.init();
-// });
-// document.head.appendChild(script);
