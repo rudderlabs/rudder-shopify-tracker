@@ -85,15 +85,23 @@ var rudderTracking = (function () {
     });
 
     switch (name) {
-      case "/collections":
+      /**
+       * We are actually not tracking collections but rather products
+       * /collections/{collectionName}/products --> This is the actual product list 
+       * that we intend to track
+       */
+      case "/products":
       case "/collections/":
-        if (isProductListPage) {
+        // TODO: check if something is there after collections/ in the URL
+        // otherwise it a collections page and we dont track that
+        if (isProductListPage()) {
           productListPage(val);
         }
 
-      case "/products":
       case "/products/":
-        console.log("/products/");
+        // TODO: check if something is there after products/ in the URL
+        // if not, then it is products page and not a single product, and we should 
+        // fire calls accordingly.
         productPage(val);
         break;
 
