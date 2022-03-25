@@ -160,16 +160,6 @@ var rudderTracking = (function () {
     }
     return false;
   }
-  function startProductsTracking(str, val) {
-    let pathArray = window.location.pathname.split('/');
-    if(pathArray[pathArray.length -2] === "collections") {
-      productListPage(val);
-    }
-    else if (pathArray[pathArray.length - 2] === "products") {
-      productPage(val);
-    }
-    else if (pathArray)
-  }
 
   function getUrl() {
     return (
