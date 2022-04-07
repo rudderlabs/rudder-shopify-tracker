@@ -177,9 +177,24 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
+      rs$('form[action="/account"] [type="submit"]').on(
+        "click",
+        userRegistered
+      );
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
+  }
+
+  function userRegistered() {
+    const userEmail = rs$('form[action="/account"] [type="email"]').val();
+    const firstName = rs$('form[action="/account"] [name="customer[first_name]"]').val();
+    const lastName = rs$('form[action="/account"] [name="customer[last_name]"]').val();
+    rudderanalytics.identify(__st.cid.toString(),{ 
+      email: userEmail || "",
+      firstName,
+      lastName
+    });
   }
 
   function cartPage(event) {
