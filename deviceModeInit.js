@@ -50,6 +50,12 @@ var rudderTracking = (function () {
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
+    /*
+      If cid exists => user logged in.
+    */
+    if(__st.cid) {
+      rudderanalytics.identify(__st.cid.toString());
+    }
     trackPageEvent();
     trackNamedPageView();
 
