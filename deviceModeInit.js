@@ -5,11 +5,12 @@ var rudderTracking = (function () {
     "/collections/": "Product List Viewed",
     "/account/register": "Registration Viewed",
     "/thank_you": "Checkout Step Completed",
-    "/account": __st.cid || ShopifyAnalytics.lib.user().traits().uniqToken,
+    "/account/login": "Login Viewed"
   };
   const htmlSelector = {};
   const pageURL = window.location.href;
   let pageCurrency = "";
+  let userId;
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -46,10 +47,14 @@ var rudderTracking = (function () {
 
   function init() {
     pageCurrency = Shopify.currency.active;
+    userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
+    if (userId) {
+      rudderanalytics.identify(userId);
+    }
     trackPageEvent();
     trackNamedPageView();
 
@@ -171,9 +176,40 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
+      rs$("#create_customer").submit(userRegistered);
+    } else if (pages[path] === "Login Viewed") {
+      rudderanalytics.track(pages[path], properties);
+      rs$("#customer_login").submit(userLoggedIn);
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
+  }
+
+
+  function userRegistered() {
+    const email = rs$('#create_customer [type="email"]').val();
+    const firstName = rs$(
+      '#create_customer [name="customer[first_name]"]'
+    ).val();
+    const lastName = rs$('#create_customer [name="customer[last_name]"]').val();
+    rudderanalytics.identify({
+      email,
+      firstName,
+      lastName,
+    });
+  }
+
+  function userLoggedIn() {
+    const email = rs$('#customer_login [type="email"]').val();
+    const firstName = rs$(
+      '#customer_login [name="customer[first_name]"]'
+    ).val();
+    const lastName = rs$('#customer_login [name="customer[last_name]"]').val();
+    rudderanalytics.identify({
+      email,
+      firstName,
+      lastName,
+    });
   }
 
   function cartPage(event) {
