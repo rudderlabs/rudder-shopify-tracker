@@ -53,7 +53,7 @@ var rudderTracking = (function () {
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
     if (userId) {
-      rudderanalytics.identify(`${userId}`);
+      rudderanalytics.identify(String(userId));
     }
     trackPageEvent();
     trackNamedPageView();
