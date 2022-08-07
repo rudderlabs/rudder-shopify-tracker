@@ -5,12 +5,14 @@ var rudderTracking = (function () {
     "/collections/": "Product List Viewed",
     "/account/register": "Registration Viewed",
     "/thank_you": "Checkout Step Completed",
-    "/account/login": "Login Viewed"
+    "/account/login": "Login Viewed",
   };
   const htmlSelector = {};
   const pageURL = window.location.href;
   let pageCurrency = "";
   let userId;
+  let cartToken;
+  let anonymousId;
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -33,7 +35,7 @@ var rudderTracking = (function () {
     "total_discount",
     "total_price",
     "total_weight",
-    "item_count"
+    "item_count",
   ]);
 
   const productMapping = [
@@ -48,12 +50,26 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+    cartToken = cookie_action({ action: "get", name: "cart" })
+      ? String(cookie_action({ action: "get", name: "cart" }))
+      : cookie_action({ action: "get", name: "cart" });
+    anonymousId = String(rudderanalytics.getAnonymousId());
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
-    if (userId) {
+    if (
+      userId &&
+      cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured"
+    ) {
       rudderanalytics.identify(String(userId));
+    }
+    // checking if cart_token is present
+    // if present and if it does not match with the anonymousId
+    // we need to switch the anonymousId with the cartToken
+    if (!userId && !!cartToken && anonymousId !== cartToken) {
+      rudderanalytics.alias(cartToken, anonymousId);
+      rudderanalytics.setAnonymousId(String(cartToken));
     }
     trackPageEvent();
     trackNamedPageView();
@@ -61,7 +77,8 @@ var rudderTracking = (function () {
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
 
-  // doesn't seem to work
+  // TODO: add support for product search
+
   function trackProductSearch() {
     const query =
       rs$("button[data-search-form-submit]")
@@ -80,16 +97,15 @@ var rudderTracking = (function () {
   function trackNamedPageView() {
     let name = "",
       mappedPageName = "";
-      for (const p of Object.keys(pages)) {
-        if (isPage(p)) {
-          name = p;
-          mappedPageName = pages[p];
-          break;
-        }
-      }  
+    for (const p of Object.keys(pages)) {
+      if (isPage(p)) {
+        name = p;
+        mappedPageName = pages[p];
+        break;
+      }
+    }
 
     switch (name) {
-
       case "/products":
       case "/collections/":
       case "/products/":
@@ -135,22 +151,22 @@ var rudderTracking = (function () {
     return pageURL.indexOf(name) > -1 ? true : false;
   }
 
-  function trackProductPages (mappedPageName) {
-    const pagePath = window.location.pathname
-    if (pagePath === "/collections" || pagePath === "/products")
-    {
+  function trackProductPages(mappedPageName) {
+    const pagePath = window.location.pathname;
+    if (pagePath === "/collections" || pagePath === "/products") {
       console.log("RudderStack does not track this page");
-    }
-    else {
+    } else {
       const pagePathArr = pagePath.split("/");
       // If the url is = /products or /collections/{collectionId}
-      if( pagePathArr[pagePathArr.length - 1] == "products" ||
-          pagePathArr[pagePathArr.length - 2] == "collections"  ) {
-            productListPage(mappedPageName);
-        }
+      if (
+        pagePathArr[pagePathArr.length - 1] == "products" ||
+        pagePathArr[pagePathArr.length - 2] == "collections"
+      ) {
+        productListPage(mappedPageName);
+      }
       // If the url is = /products/{productId}
-      else if (pagePathArr[pagePathArr.length - 2] == "products" ) {
-            productPage(mappedPageName);
+      else if (pagePathArr[pagePathArr.length - 2] == "products") {
+        productPage(mappedPageName);
       }
     }
   }
@@ -184,7 +200,6 @@ var rudderTracking = (function () {
       rudderanalytics.page(category, pageName, properties);
     }
   }
-
 
   function userRegistered() {
     const email = rs$('#create_customer [type="email"]').val();
@@ -242,7 +257,7 @@ var rudderTracking = (function () {
           products: [],
         };
 
-        Object.keys(data).forEach(key => {
+        Object.keys(data).forEach((key) => {
           if (cartPropertyKeys.has(key)) {
             payload[key] = data[key];
           }
@@ -307,13 +322,13 @@ var rudderTracking = (function () {
         };
         if (data.products) {
           data.products.forEach((product) => {
-          const p = propertyMapping(product, productMapping);
-          p.currency = pageCurrency;
-          p.sku = p.variant
-            .map((item) => item.sku)
-            .reduce((prev, next) => prev + next);
-          p.price = p.variant[0].price;
-          payload.products.push(p);
+            const p = propertyMapping(product, productMapping);
+            p.currency = pageCurrency;
+            p.sku = p.variant
+              .map((item) => item.sku)
+              .reduce((prev, next) => prev + next);
+            p.price = p.variant[0].price;
+            payload.products.push(p);
           });
 
           rudderanalytics.track(event, payload);
@@ -360,7 +375,6 @@ var rudderTracking = (function () {
     rudderanalytics.track("Checkout Started", this);
   }
 
-
   function _getJsonData(url) {
     var defer = rs$.Deferred();
     rs$.ajax({
@@ -377,6 +391,60 @@ var rudderTracking = (function () {
       },
     });
     return defer.promise();
+  }
+
+  // utility function to get cookie value
+  function cookie_parse() {
+    var obj = {};
+    var pairs = document.cookie.split(/ *; */);
+    var pair;
+    if ("" == pairs[0]) return obj;
+    for (var i = 0; i < pairs.length; ++i) {
+      pair = pairs[i].split("=");
+      obj[pair[0]] = pair[1];
+    }
+    return obj;
+  }
+
+  function cookie_action(agr = {}) {
+    let output;
+    const {
+      name,
+      value,
+      expire_hr,
+      path = "/",
+      samesite = "Lax",
+      action = "get",
+    } = agr;
+    let expires = "";
+    if (expire_hr) {
+      const date = new Date();
+      date.setTime(date.getTime() + expire_hr * 60 * 60 * 1000);
+      expires = "; expires=" + date.toUTCString();
+    }
+
+    switch (action) {
+      case "set":
+        document.cookie =
+          name +
+          "=" +
+          value +
+          expires +
+          ";path=" +
+          path +
+          ";SameSite=" +
+          samesite;
+        output = "Cookie Successfully Set";
+        break;
+      case "get":
+        let cookieObj = cookie_parse();
+        output = cookieObj[name];
+        break;
+      default:
+        output = "Invalid Action";
+        break;
+    }
+    return output;
   }
 
   // return {
@@ -397,4 +465,3 @@ var rudderTracking = (function () {
     init();
   });
 })();
-
