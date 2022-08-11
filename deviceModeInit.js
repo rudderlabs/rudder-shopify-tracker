@@ -11,8 +11,6 @@ var rudderTracking = (function () {
   const pageURL = window.location.href;
   let pageCurrency = "";
   let userId;
-  let cartToken;
-  let anonymousId;
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -36,6 +34,23 @@ var rudderTracking = (function () {
     "total_price",
     "total_weight",
     "item_count",
+  ]);
+
+  const cartPropertyKeysToFormat = new Set([
+    "original_total_price",
+    "total_price",
+    "total_discount",
+  ]);
+  const cartItemPropertyKeysToFormat = new Set([
+    "price",
+    "original_price",
+    "discounted_price",
+    "line_price",
+    "original_line_price",
+    "total_discount",
+    "final_price",
+    "final_line_price",
+    "line_level_total_discount",
   ]);
 
   const productMapping = [
@@ -63,13 +78,11 @@ var rudderTracking = (function () {
       cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured"
     ) {
       rudderanalytics.identify(String(userId));
-    }
-    // checking if cart_token is present
-    // if present and if it does not match with the anonymousId
-    // we need to switch the anonymousId with the cartToken
-    if (!userId && !!cartToken && anonymousId !== cartToken) {
-      rudderanalytics.alias(cartToken, anonymousId);
-      rudderanalytics.setAnonymousId(String(cartToken));
+      cookie_action({
+        action: "set",
+        name: "rudder_user_id",
+        value: "captured",
+      });
     }
     trackPageEvent();
     trackNamedPageView();
@@ -227,6 +240,11 @@ var rudderTracking = (function () {
     });
   }
 
+  // function to format value to fload to to fixed places
+  function formatPrice(value) {
+    return parseFloat(value / 100).toFixed(2);
+  }
+
   function cartPage(event) {
     // mapping a single cart item object to rudder format
     function cartItemMapper(payload, mappingObject) {
@@ -244,6 +262,41 @@ var rudderTracking = (function () {
           mappedPayload[key] = payload[key];
         }
       });
+
+      // format each product properties where we have price
+      Object.keys(mappedPayload).forEach((key) => {
+        if (cartItemPropertyKeysToFormat.has(key)) {
+          mappedPayload[key] = formatPrice(mappedPayload[key]);
+        }
+        if (mappedPayload.discounts && mappedPayload.discounts.length > 0) {
+          mappedPayload.discounts.forEach((discount) => {
+            discount.amount = formatPrice(discount.amount);
+          });
+        }
+        if (
+          mappedPayload.line_level_discount_allocations &&
+          mappedPayload.line_level_discount_allocations.length > 0
+        ) {
+          mappedPayload.line_level_discount_allocations.forEach(
+            (line_level_discount_allocation) => {
+              line_level_discount_allocation.amount = formatPrice(
+                line_level_discount_allocation.amount
+              );
+              if (
+                line_level_discount_allocation.discount_application
+                  ?.total_allocated_amount
+              ) {
+                line_level_discount_allocation.discount_application.total_allocated_amount =
+                  formatPrice(
+                    line_level_discount_allocation.discount_application
+                      .total_allocated_amount
+                  );
+              }
+            }
+          );
+        }
+      });
+
       return mappedPayload;
     }
 
@@ -268,6 +321,13 @@ var rudderTracking = (function () {
           product.position = pos + 1;
           product.currency = currency;
           payload.products.push(product);
+        });
+
+        // format the cart properties
+        Object.keys(payload).forEach((key) => {
+          if (cartPropertyKeysToFormat.has(key)) {
+            payload[key] = formatPrice(payload[key]);
+          }
         });
 
         rudderanalytics.track(event, payload);
