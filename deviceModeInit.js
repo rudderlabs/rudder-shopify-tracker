@@ -268,34 +268,40 @@ var rudderTracking = (function () {
         if (cartItemPropertyKeysToFormat.has(key)) {
           mappedPayload[key] = formatPrice(mappedPayload[key]);
         }
-        if (mappedPayload.discounts && mappedPayload.discounts.length > 0) {
-          mappedPayload.discounts.forEach((discount) => {
-            discount.amount = formatPrice(discount.amount);
-          });
-        }
-        if (
-          mappedPayload.line_level_discount_allocations &&
-          mappedPayload.line_level_discount_allocations.length > 0
-        ) {
-          mappedPayload.line_level_discount_allocations.forEach(
-            (line_level_discount_allocation) => {
-              line_level_discount_allocation.amount = formatPrice(
-                line_level_discount_allocation.amount
-              );
-              if (
-                line_level_discount_allocation.discount_application
-                  ?.total_allocated_amount
-              ) {
-                line_level_discount_allocation.discount_application.total_allocated_amount =
-                  formatPrice(
-                    line_level_discount_allocation.discount_application
-                      .total_allocated_amount
-                  );
-              }
-            }
+      });
+
+      if (mappedPayload.discounts && mappedPayload.discounts.length > 0) {
+        for (let i = 0; i < mappedPayload.discounts.length; i++) {
+          mappedPayload.discounts[i].amount = formatPrice(
+            mappedPayload.discounts[i].amount
           );
         }
-      });
+      }
+      if (
+        mappedPayload.line_level_discount_allocations &&
+        mappedPayload.line_level_discount_allocations.length > 0
+      ) {
+        for (
+          let i = 0;
+          i < mappedPayload.line_level_discount_allocations.length;
+          i++
+        ) {
+          mappedPayload.line_level_discount_allocations[i].amount = formatPrice(
+            mappedPayload.line_level_discount_allocations[i].amount
+          );
+          if (
+            mappedPayload.line_level_discount_allocations[i].discount_application
+              ?.total_allocated_amount
+          ) {
+            mappedPayload.line_level_discount_allocations[
+              i
+            ].discount_application.total_allocated_amount = formatPrice(
+              mappedPayload.line_level_discount_allocations[i]
+                .discount_application.total_allocated_amount
+            );
+          }
+        }
+      }
 
       return mappedPayload;
     }
