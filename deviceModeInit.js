@@ -195,7 +195,7 @@ var rudderTracking = (function () {
     const path = loc.pathname;
     const pageName = path.split("/").pop();
     const url = loc.href;
-    const category = url.split(`${pageName}`)[1].split("/")[0];
+    const category = path.split("/")[path.split("/").length - 2];
     const properties = {
       path: path,
       referrer: document.referrer,
