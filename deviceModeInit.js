@@ -65,10 +65,6 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
-    cartToken = cookie_action({ action: "get", name: "cart" })
-      ? String(cookie_action({ action: "get", name: "cart" }))
-      : cookie_action({ action: "get", name: "cart" });
-    anonymousId = String(rudderanalytics.getAnonymousId());
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
@@ -195,7 +191,12 @@ var rudderTracking = (function () {
     const path = loc.pathname;
     const pageName = path.split("/").pop();
     const url = loc.href;
-    const category = path.split("/")[path.split("/").length - 2];
+    let category;
+    try {
+      category = path.split("/")[path.split("/").length - 2];
+    } catch (err) {
+      category = "";
+    }
     const properties = {
       path: path,
       referrer: document.referrer,
@@ -242,7 +243,7 @@ var rudderTracking = (function () {
 
   // function to format value to fload to to fixed places
   function formatPrice(value) {
-    return parseFloat(value / 100).toFixed(2);
+    return (parseFloat(value) / 100).toFixed(2);
   }
 
   function cartPage(event) {
@@ -290,8 +291,8 @@ var rudderTracking = (function () {
             mappedPayload.line_level_discount_allocations[i].amount
           );
           if (
-            mappedPayload.line_level_discount_allocations[i].discount_application
-              ?.total_allocated_amount
+            mappedPayload.line_level_discount_allocations[i]
+              .discount_application?.total_allocated_amount
           ) {
             mappedPayload.line_level_discount_allocations[
               i
@@ -482,15 +483,14 @@ var rudderTracking = (function () {
       samesite = "Lax",
       action = "get",
     } = agr;
-    let expires = "";
-    if (expire_hr) {
-      const date = new Date();
-      date.setTime(date.getTime() + expire_hr * 60 * 60 * 1000);
-      expires = "; expires=" + date.toUTCString();
-    }
-
     switch (action) {
       case "set":
+        let expires = "";
+        if (expire_hr) {
+          const date = new Date();
+          date.setTime(date.getTime() + expire_hr * 60 * 60 * 1000);
+          expires = "; expires=" + date.toUTCString();
+        }
         document.cookie =
           name +
           "=" +
