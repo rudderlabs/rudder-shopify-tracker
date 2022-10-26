@@ -335,6 +335,10 @@ var rudderTracking = (function () {
         payload.sku = payload.variant
           .map((item) => item.sku)
           .reduce((prev, next) => prev + next);
+        // we set root-level price property to be equal to first variant's price, if it is not available
+        if (payload.variant && !payload.price) {
+          payload.price = payload.variant[0].price;
+        }
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$('form[action="/cart/add"] [type="button"]').each((i, ele) => {
