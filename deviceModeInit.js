@@ -48,17 +48,31 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+
+    // fetching heap Cookie object
+    heapCookieObject = JSON.parse(getCookie("_hp2_id.1200528076"))
+
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
     if (userId) {
-      rudderanalytics.identify(String(userId));
+      rudderanalytics.identify(String(userId), {
+        heapUserId: heapCookieObject.userId,
+        heapSessionId: heapCookieObject.sessionId
+      });
     }
     trackPageEvent();
     trackNamedPageView();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
+  }
+
+  function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+      "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
   }
 
   // doesn't seem to work
