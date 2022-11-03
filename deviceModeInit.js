@@ -62,23 +62,16 @@ var rudderTracking = (function () {
     { dest: "url", src: "url" },
   ];
 
-  function getCookie(cookieName) {
-    let cookie = {};
-    document.cookie.split(';').forEach(function(el) {
-      let [key,value] = el.split('=');
-      cookie[key.trim()] = value;
-    })
-    return cookie[cookieName];
-  }
 
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
 
     // fetching heap Cookie object
-    heapCookieStringifiedObject = getCookie("_hp2_id.1200528076");
-    if (heapCookieStringifiedObject) {
-      heapCookieObject = JSON.parse(decodeURIComponent(heapCookieStringifiedObject))
+    heapCookieObject = cookie_action({ action: "get", name: "_hp2_id.1200528076"});
+    
+    if (heapCookieObject) {
+      heapCookieObject = JSON.parse(decodeURIComponent(heapCookieObject));
     } else {
       console.log("No heap cookie found.")
     }
@@ -95,20 +88,15 @@ var rudderTracking = (function () {
         rudderanalytics.identify(String(userId), {
           heapUserId: heapCookieObject.userId,
           heapSessionId: heapCookieObject.sessionId
-        });
-        cookie_action({
-          action: "set",
-          name: "rudder_user_id",
-          value: "captured",
-        });
+        });     
       } else {
         rudderanalytics.identify(String(userId));
-        cookie_action({
-          action: "set",
-          name: "rudder_user_id",
-          value: "captured",
-      });
       }
+      cookie_action({
+        action: "set",
+        name: "rudder_user_id",
+        value: "captured",
+      });
     }
     trackPageEvent();
     trackNamedPageView();
