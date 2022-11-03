@@ -81,7 +81,7 @@ var rudderTracking = (function () {
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
-        
+
     identifyUser()
   
     trackPageEvent();
@@ -92,10 +92,10 @@ var rudderTracking = (function () {
   function identifyUser() {
     if(userId && cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured") {
       
-      if (heapCookieObject) {
+      if (heapCookieObject && cookie_action({ action: "get", name: "rudder_heap_identities" }) !== "captured") {
         rudderanalytics.identify(userId, {
-          heapUseriD: heapCookieObject.userId,
-          session: heapCookieObject.sessionId
+          heapUserID: heapCookieObject.userId,
+          heapSessionId: heapCookieObject.sessionId
         });
         cookie_action({
           action: "set",
@@ -115,8 +115,8 @@ var rudderTracking = (function () {
     if(heapCookieObject && cookie_action({ action: "get", name: "rudder_heap_identities" }) !== "captured") {
       
       rudderanalytics.identify(rudderanalytics.getUserId(), {
-        heapUseriD: heapCookieObject.userId,
-        session: heapCookieObject.sessionId
+        heapUserID: heapCookieObject.userId,
+        heapSessionId: heapCookieObject.sessionId
       });
     
       cookie_action({
