@@ -68,6 +68,7 @@ var rudderTracking = (function () {
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
 
     // fetching heap Cookie object
+    // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({ action: "get", name: "_hp2_id.1200528076"});
     
     if (heapCookieObject) {
@@ -80,28 +81,50 @@ var rudderTracking = (function () {
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
-    if (
-      userId &&
-      cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured"
-    ) {
-      if (heapCookieObject) {
-        rudderanalytics.identify(String(userId), {
-          heapUserId: heapCookieObject.userId,
-          heapSessionId: heapCookieObject.sessionId
-        });     
-      } else {
-        rudderanalytics.identify(String(userId));
-      }
-      cookie_action({
-        action: "set",
-        name: "rudder_user_id",
-        value: "captured",
-      });
-    }
+        
+    identifyUser()
+  
     trackPageEvent();
     trackNamedPageView();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
+  }
+  function identifyUser() {
+    if(userId && cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured") {
+      
+      if (heapCookieObject) {
+        rudderanalytics.identify(userId, {
+          heapUseriD: heapCookieObject.userId,
+          session: heapCookieObject.sessionId
+        });
+        cookie_action({
+          action: "set",
+          name: "rudder_heap_identities",
+          value: "captured"
+        });
+      } else {
+        rudderanalytics.identify(userId);
+      }
+      cookie_action({
+        action: "set",
+        name: "rudder_user_id",
+        value: "captured"
+      });
+    }
+  
+    if(heapCookieObject && cookie_action({ action: "get", name: "rudder_heap_identities" }) !== "captured") {
+      
+      rudderanalytics.identify(rudderanalytics.getUserId(), {
+        heapUseriD: heapCookieObject.userId,
+        session: heapCookieObject.sessionId
+      });
+    
+      cookie_action({
+        action: "set",
+        name: "rudder_heap_identities",
+        value: "captured"
+      });
+    }
   }
 
   // TODO: add support for product search
