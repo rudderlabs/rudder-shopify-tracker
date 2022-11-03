@@ -62,9 +62,27 @@ var rudderTracking = (function () {
     { dest: "url", src: "url" },
   ];
 
+  function getCookie(cookieName) {
+    let cookie = {};
+    document.cookie.split(';').forEach(function(el) {
+      let [key,value] = el.split('=');
+      cookie[key.trim()] = value;
+    })
+    return cookie[cookieName];
+  }
+
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+
+    // fetching heap Cookie object
+    heapCookieStringifiedObject = getCookie("_hp2_id.1200528076");
+    if (heapCookieStringifiedObject) {
+      heapCookieObject = JSON.parse(decodeURIComponent(heapCookieStringifiedObject))
+    } else {
+      console.log("No heap cookie found.")
+    }
+
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
@@ -73,12 +91,24 @@ var rudderTracking = (function () {
       userId &&
       cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured"
     ) {
-      rudderanalytics.identify(String(userId));
-      cookie_action({
-        action: "set",
-        name: "rudder_user_id",
-        value: "captured",
+      if (heapCookieObject) {
+        rudderanalytics.identify(String(userId), {
+          heapUserId: heapCookieObject.userId,
+          heapSessionId: heapCookieObject.sessionId
+        });
+        cookie_action({
+          action: "set",
+          name: "rudder_user_id",
+          value: "captured",
+        });
+      } else {
+        rudderanalytics.identify(String(userId));
+        cookie_action({
+          action: "set",
+          name: "rudder_user_id",
+          value: "captured",
       });
+      }
     }
     trackPageEvent();
     trackNamedPageView();
@@ -417,6 +447,10 @@ var rudderTracking = (function () {
         payload.sku = payload.variant
           .map((item) => item.sku)
           .reduce((prev, next) => prev + next);
+        // we set root-level price property to be equal to first variant's price, if it is not available
+        if (payload.variant && !payload.price) {
+          payload.price = payload.variant[0].price;
+        }
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$('form[action="/cart/add"] [type="button"]').each((i, ele) => {
