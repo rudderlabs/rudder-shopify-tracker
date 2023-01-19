@@ -62,45 +62,53 @@ var rudderTracking = (function () {
     { dest: "url", src: "url" },
   ];
 
-
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
 
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
-    heapCookieObject = cookie_action({ action: "get", name: "_hp2_id.1200528076"});
-    
+    heapCookieObject = cookie_action({
+      action: "get",
+      name: "_hp2_id.1200528076",
+    });
+
     if (heapCookieObject) {
       heapCookieObject = JSON.parse(decodeURIComponent(heapCookieObject));
     } else {
-      console.log("No heap cookie found.")
+      console.log("No heap cookie found.");
     }
 
     htmlSelector.buttonAddToCart =
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
+    fetchCart();
+    identifyUser();
 
-    identifyUser()
-  
     trackPageEvent();
     trackNamedPageView();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
   function identifyUser() {
-    if(userId && cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured") {
-      
-      if (heapCookieObject && cookie_action({ action: "get", name: "rudder_heap_identities" }) !== "captured") {
+    if (
+      userId &&
+      cookie_action({ action: "get", name: "rudder_user_id" }) !== "captured"
+    ) {
+      if (
+        heapCookieObject &&
+        cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
+          "captured"
+      ) {
         rudderanalytics.identify(userId, {
           heapUserID: heapCookieObject.userId,
-          heapSessionId: heapCookieObject.sessionId
+          heapSessionId: heapCookieObject.sessionId,
         });
         cookie_action({
           action: "set",
           name: "rudder_heap_identities",
-          value: "captured"
+          value: "captured",
         });
       } else {
         rudderanalytics.identify(userId);
@@ -108,27 +116,86 @@ var rudderTracking = (function () {
       cookie_action({
         action: "set",
         name: "rudder_user_id",
-        value: "captured"
+        value: "captured",
       });
     }
-  
-    if(heapCookieObject && cookie_action({ action: "get", name: "rudder_heap_identities" }) !== "captured") {
-      
+
+    if (
+      heapCookieObject &&
+      cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
+        "captured"
+    ) {
       rudderanalytics.identify(rudderanalytics.getUserId(), {
         heapUserID: heapCookieObject.userId,
-        heapSessionId: heapCookieObject.sessionId
+        heapSessionId: heapCookieObject.sessionId,
       });
-    
+
       cookie_action({
         action: "set",
         name: "rudder_heap_identities",
-        value: "captured"
+        value: "captured",
       });
     }
   }
 
   // TODO: add support for product search
 
+  function fetchCart() {
+    function checkCartAttributes(cart) {
+      const { attributes } = cart;
+      if (attributes?.rudderAnonymousId && attributes?.rudderUpdatedAt) {
+        return true;
+      }
+      return false;
+    }
+
+    function updateCartAttribute() {
+      const anonymousId = rudderanalytics.getAnonymousId();
+      return rs$.post(window.Shopify.routes.root + "cart/update.js", {
+        attributes: {
+          rudderAnonymousId: anonymousId,
+          rudderUpdatedAt: Date.now(),
+        },
+      });
+    }
+
+    function checkUpdateTime(cart) {
+      const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
+      // const oneHourTimeInMilliSeconds = 1;
+      const { rudderUpdatedAt } = cart.attributes;
+      const currentTime = Date.now();
+      return rudderUpdatedAt < currentTime - oneHourTimeInMilliSeconds;
+    }
+    function sendIdentifierToRudderWebhook(cart) {
+      const webhookUrl = "https://dataplaneUrl/v1/webhook?writeKey=writekey";
+      const data = {
+        event: "rudderIdentifier",
+        anonymousId: rudderanalytics.getAnonymousId(),
+        cartToken: cart.token,
+      };
+      rs$
+        .post(webhookUrl, data)
+        .then(() => console.log("Successfully sent event to rudderstack"))
+        .catch(() => {
+          console.log("Failed to sent event to rudderstack");
+        });
+    }
+    rs$
+      .get(window.Shopify.routes.root + "cart.json")
+      .then((cart) => {
+        // const temp =
+        if (!checkCartAttributes(cart) || checkUpdateTime(cart)) {
+          updateCartAttribute().then((cart) => {
+            console.log("Successfully updated cart");
+            // TO DO send to rudderstack through webhook endpoint
+            sendIdentifierToRudderWebhook(cart);
+          });
+        }
+      })
+      .catch((error) => {
+        console.log("Error occurred while updating cart:", error.status);
+      });
+  }
   function trackProductSearch() {
     const query =
       rs$("button[data-search-form-submit]")
@@ -572,7 +639,7 @@ var rudderTracking = (function () {
   // rs$ = $.noConflict(true);
   // init();
   script.addEventListener("load", function () {
-    rs$ = $.noConflict(true);
+    rs$ = $;
     init();
   });
 })();
