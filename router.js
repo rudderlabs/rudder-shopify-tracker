@@ -45,7 +45,7 @@ router.get("/load", async (ctx) => {
   d = d.replace("configBackendUrl", configUrl);
 
   deviceModeInit = deviceModeInit.replace("dataplaneUrl", dataPlaneUrl);
-  deviceModeInit = deviceModeInit.replace("writekey", writeKey);
+  deviceModeInit = deviceModeInit.replace("writeKey_placeHolder", writeKey);
 
   // console.log("d", d);
   ctx.response.body = d + rudderJsCode + deviceModeInit;

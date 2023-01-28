@@ -83,7 +83,18 @@ var rudderTracking = (function () {
       rs$('form[action="/cart/add"] [type="submit"]').length === 1
         ? rs$('form[action="/cart/add"] [type="submit"]')
         : "";
-    fetchCart();
+    fetchCart()
+      .then((cart) => {
+        if (!checkCartAttributes(cart) || checkUpdateTime(cart)) {
+          updateCartAttribute().then((cart) => {
+            console.log("Successfully updated cart");
+            sendIdentifierToRudderWebhook(cart);
+          });
+        }
+      })
+      .catch((error) => {
+        console.log("Error occurred while updating cart:", error);
+      });
     identifyUser();
 
     trackPageEvent();
@@ -140,61 +151,65 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-  function fetchCart() {
-    function checkCartAttributes(cart) {
-      const { attributes } = cart;
-      if (attributes?.rudderAnonymousId && attributes?.rudderUpdatedAt) {
-        return true;
-      }
-      return false;
+  function checkCartAttributes(cart) {
+    const { attributes } = cart;
+    if (attributes?.rudderAnonymousId && attributes?.rudderUpdatedAt) {
+      return true;
     }
+    return false;
+  }
 
-    function updateCartAttribute() {
-      const anonymousId = rudderanalytics.getAnonymousId();
-      return rs$.post(window.Shopify.routes.root + "cart/update.js", {
+  function updateCartAttribute() {
+    const anonymousId = rudderanalytics.getAnonymousId();
+    return rs$.post(
+      window.Shopify.routes.root + "cart/update.json",
+      {
         attributes: {
           rudderAnonymousId: anonymousId,
           rudderUpdatedAt: Date.now(),
         },
-      });
-    }
+      },
+      undefined,
+      "json"
+    );
+  }
 
-    function checkUpdateTime(cart) {
-      const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-      // const oneHourTimeInMilliSeconds = 1;
-      const { rudderUpdatedAt } = cart.attributes;
-      const currentTime = Date.now();
-      return rudderUpdatedAt < currentTime - oneHourTimeInMilliSeconds;
-    }
-    function sendIdentifierToRudderWebhook(cart) {
-      const webhookUrl = "https://dataplaneUrl/v1/webhook?writeKey=writekey";
-      const data = {
-        event: "rudderIdentifier",
-        anonymousId: rudderanalytics.getAnonymousId(),
-        cartToken: cart.token,
-      };
-      rs$
-        .post(webhookUrl, data)
-        .then(() => console.log("Successfully sent event to rudderstack"))
-        .catch(() => {
-          console.log("Failed to sent event to rudderstack");
-        });
-    }
+  function checkUpdateTime(cart) {
+    const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
+    const { rudderUpdatedAt } = cart.attributes;
+    const currentTime = Date.now();
+    return rudderUpdatedAt < currentTime - oneHourTimeInMilliSeconds;
+  }
+  function sendIdentifierToRudderWebhook(cart) {
+    const webhookUrl =
+      "https://dataplaneUrl/v1/webhook?writeKey=writeKey_placeHolder";
+    const data = {
+      event: "rudderIdentifier",
+      anonymousId: rudderanalytics.getAnonymousId(),
+      cartToken: cart.token,
+    };
     rs$
-      .get(window.Shopify.routes.root + "cart.json")
-      .then((cart) => {
-        // const temp =
-        if (!checkCartAttributes(cart) || checkUpdateTime(cart)) {
-          updateCartAttribute().then((cart) => {
-            console.log("Successfully updated cart");
-            // TO DO send to rudderstack through webhook endpoint
-            sendIdentifierToRudderWebhook(cart);
-          });
-        }
+      .ajax({
+        url: webhookUrl,
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(data),
       })
-      .catch((error) => {
-        console.log("Error occurred while updating cart:", error.status);
+      .then(() => {
+        console.log("Successfully sent event to rudderstack");
+      })
+      .catch(() => {
+        console.log("Failed to sent event to rudderstack");
       });
+  }
+
+  function fetchCart() {
+    return rs$.get(
+      window.Shopify.routes.root + "cart.js",
+      undefined,
+      undefined,
+      "JSON"
+    );
   }
   function trackProductSearch() {
     const query =
@@ -639,7 +654,7 @@ var rudderTracking = (function () {
   // rs$ = $.noConflict(true);
   // init();
   script.addEventListener("load", function () {
-    rs$ = $;
+    rs$ = $.noConflict(true);
     init();
   });
 })();
