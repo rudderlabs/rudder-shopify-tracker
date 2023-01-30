@@ -178,7 +178,7 @@ var rudderTracking = (function () {
     const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
     const { rudderUpdatedAt } = cart.attributes;
     const currentTime = Date.now();
-    return rudderUpdatedAt < currentTime - oneHourTimeInMilliSeconds;
+    return currentTime - rudderUpdatedAt > oneHourTimeInMilliSeconds;
   }
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
@@ -196,10 +196,10 @@ var rudderTracking = (function () {
         data: JSON.stringify(data),
       })
       .then(() => {
-        console.log("Successfully sent event to rudderstack");
+        console.log("Successfully sent identifier event to rudderstack");
       })
       .catch(() => {
-        console.log("Failed to sent event to rudderstack");
+        console.log("Failed to sent identifier event to rudderstack");
       });
   }
 
