@@ -5,13 +5,16 @@ require("dotenv").config();
 
 const router = new Router();
 
-const configUrl = process.env.CONFIG_BACKEND_URL || "https://api.rudderstack.com";
-const jsSdkCdnUrl = process.env.JS_SDK_CDN || "https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js";
-const deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
+const configUrl =
+  process.env.CONFIG_BACKEND_URL || "https://api.rudderstack.com";
+const jsSdkCdnUrl =
+  process.env.JS_SDK_CDN ||
+  "https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js";
+let deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
   encoding: "utf-8",
 });
 
-router.get('/load', async ctx => {
+router.get("/load", async (ctx) => {
   // only takes in writeKey and DataPlane Url
   let rudderJsCode;
   try {
@@ -30,7 +33,7 @@ router.get('/load', async ctx => {
   const { writeKey, dataPlaneUrl } = ctx.request.query;
   if (!writeKey || !dataPlaneUrl) {
     ctx.response.body = {
-      error: 'writeKey or dataPlaneUrl is invalid or missing'
+      error: "writeKey or dataPlaneUrl is invalid or missing",
     };
     ctx.status = 400;
     return ctx;
@@ -40,13 +43,17 @@ router.get('/load', async ctx => {
   d = d.replace("writeKey", writeKey);
   d = d.replace("dataPlaneUrl", dataPlaneUrl);
   d = d.replace("configBackendUrl", configUrl);
+
+  deviceModeInit = deviceModeInit.replace("dataplaneUrl", dataPlaneUrl);
+  deviceModeInit = deviceModeInit.replace("writeKey_placeHolder", writeKey);
+
   // console.log("d", d);
   ctx.response.body = d + rudderJsCode + deviceModeInit;
   ctx.set("Content-Type", "application/javascript");
   return ctx;
 });
 
-router.get('/health', ctx => {
+router.get("/health", (ctx) => {
   ctx.response.body = "Server is Up";
   ctx.status = 200;
   return ctx;
