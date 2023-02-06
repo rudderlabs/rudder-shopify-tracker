@@ -10,12 +10,10 @@ const configUrl =
 const jsSdkCdnUrl =
   process.env.JS_SDK_CDN ||
   "https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js";
-let deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
-  encoding: "utf-8",
-});
 
 router.get("/load", async (ctx) => {
   // only takes in writeKey and DataPlane Url
+
   let rudderJsCode;
   try {
     const resp = await axios.get(jsSdkCdnUrl);
@@ -27,6 +25,9 @@ router.get("/load", async (ctx) => {
   }
 
   let d = fs.readFileSync("./loadingCode.js", {
+    encoding: "utf-8",
+  });
+  let deviceModeInit = fs.readFileSync("./deviceModeInit.js", {
     encoding: "utf-8",
   });
 
