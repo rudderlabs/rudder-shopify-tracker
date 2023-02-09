@@ -486,10 +486,12 @@ var rudderTracking = (function () {
    */
   function getVariantSku(payload) {
     const variantId = findVariantIdInURL();
-    const variant = { payload }
-    for (let i = 0; i < variant.length; i++) {
-      if (variant[i][`id`] === variantId && variantId) {
-        return variant[i][`sku`];
+    const variant = payload.variant;
+    if (variantId) {
+      for (let i = 0; i < variant.length; i++) {
+        if (String(variant[i][`id`]) === variantId) {
+          return variant[i][`sku`];
+        }
       }
     }
     return undefined;
@@ -542,7 +544,7 @@ var rudderTracking = (function () {
           data.products.forEach((product) => {
             const p = propertyMapping(product, productMapping);
             p.currency = pageCurrency;
-            p.sku = getVariantSku(p) || p.variant[0].sku || p.product_id;
+            p.sku = p.variant[0].sku || p.product_id;
             p.price = p.variant[0].price;
             payload.products.push(p);
           });
