@@ -467,6 +467,36 @@ var rudderTracking = (function () {
       });
   }
 
+  /**
+   * Checks whether the url for the product contains the variant id
+   * @returns {string} variant id or null
+   */
+  function findVariantIdInURL() {
+    const matches = window.location.href.match(/\d{8,20}/);
+    if(matches) {
+      return matches[0]
+    }
+    return null;
+  };
+
+  /**
+   * Returns the sku value for the variant matching the id in url 
+   * @param {*} payload product payload generated using product mapping
+   * @returns {string} matching variant's sku or undefined
+   */
+  function getVariantSku(payload) {
+    const variantId = findVariantIdInURL();
+    const variant = payload.variant;
+    if (variantId) {
+      for (let i = 0; i < variant.length; i++) {
+        if (String(variant[i].id) === variantId) {
+          return variant[i].sku;
+        }
+      }
+    }
+    return undefined;
+  }
+
   // mapping seems fine
   function handleProductClicked() {
     const url = `${this.href}.json`;
@@ -514,9 +544,7 @@ var rudderTracking = (function () {
           data.products.forEach((product) => {
             const p = propertyMapping(product, productMapping);
             p.currency = pageCurrency;
-            p.sku = p.variant
-              .map((item) => item.sku)
-              .reduce((prev, next) => prev + next);
+            p.sku = p.variant[0].sku || p.product_id;
             p.price = p.variant[0].price;
             payload.products.push(p);
           });
@@ -537,9 +565,7 @@ var rudderTracking = (function () {
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        payload.sku = payload.variant
-          .map((item) => item.sku)
-          .reduce((prev, next) => prev + next);
+        payload.sku = getVariantSku(payload) || payload.variant[0].sku || payload.product_id;
         // we set root-level price property to be equal to first variant's price, if it is not available
         if (payload.variant && !payload.price) {
           payload.price = payload.variant[0].price;
