@@ -481,7 +481,7 @@ var rudderTracking = (function () {
 
   /**
    * Returns the sku value for the variant matching the id in url 
-   * @param {*} payload 
+   * @param {*} payload product payload generated using product mapping
    * @returns {string} matching variant's sku or undefined
    */
   function getVariantSku(payload) {
@@ -489,8 +489,8 @@ var rudderTracking = (function () {
     const variant = payload.variant;
     if (variantId) {
       for (let i = 0; i < variant.length; i++) {
-        if (String(variant[i][`id`]) === variantId) {
-          return variant[i][`sku`];
+        if (String(variant[i].id) === variantId) {
+          return variant[i].sku;
         }
       }
     }
