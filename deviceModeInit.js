@@ -186,6 +186,7 @@ var rudderTracking = (function () {
     const data = {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
+      cartToken: cart.token,
       cart: cart,
     };
     rs$
