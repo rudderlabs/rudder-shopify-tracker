@@ -545,7 +545,7 @@ var rudderTracking = (function () {
           data.products.forEach((product) => {
             const p = propertyMapping(product, productMapping);
             p.currency = pageCurrency;
-            p.sku = p.variant[0].sku || p.product_id;
+            p.sku = p.variant[0].sku || String(p.product_id);
             p.price = p.variant[0].price;
             payload.products.push(p);
           });
@@ -566,7 +566,7 @@ var rudderTracking = (function () {
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        payload.sku = getVariantSku(payload) || payload.variant[0].sku || payload.product_id;
+        payload.sku = getVariantSku(payload) || payload.variant[0].sku || String(payload.product_id);
         // we set root-level price property to be equal to first variant's price, if it is not available
         if (payload.variant && !payload.price) {
           payload.price = payload.variant[0].price;
