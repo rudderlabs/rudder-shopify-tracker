@@ -61,7 +61,8 @@ var rudderTracking = (function () {
     { dest: "variant", src: "variants" },
     { dest: "url", src: "url" },
   ];
-
+  const productConsidered = [];
+  let productsOnThePage = [];
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
@@ -95,6 +96,117 @@ var rudderTracking = (function () {
       .catch((error) => {
         console.log("Error occurred while updating cart:", error);
       });
+
+    const productIsVisible = (window, element) => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const { top, bottom, left, right, height } =
+        element.getBoundingClientRect();
+
+      if (
+        top < viewportHeight &&
+        bottom > 0 &&
+        left < viewportWidth &&
+        right > 0
+      ) {
+        let pixelsVisible = height;
+
+        if (top < 0) {
+          pixelsVisible += top;
+        }
+        if (bottom > viewportHeight) {
+          pixelsVisible += viewportHeight - bottom;
+        }
+        const percentVisible = pixelsVisible / height;
+
+        if (percentVisible > 0.8) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+    function getAllProductsOnPage() {
+      const allAnchorTags = document.getElementsByTagName("a");
+      const productUrlRegex = new RegExp(
+        `^(?!\/\/cdn)[-\.:\/,a-z,A-Z,0-9]*\/products\/`
+      );
+      const allAnchorTagsWithProducts = Array.prototype.slice
+        .call(allAnchorTags)
+        .filter((anchorTag) => {
+          return productUrlRegex.test(anchorTag.href);
+        });
+      let allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+        (anchorTag) => {
+          anchorTag.querySelector("img");
+        }
+      );
+      if (allProductsOnPageWithImg.length === 0) {
+        allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+          (anchorTag) => {
+            const parentNode = anchorTag.parentNode.parentNode.parentNode;
+            return (
+              parentNode.nextElementSibling?.querySelector("img") ||
+              parentNode.previousElementSibling?.querySelector("img")
+            );
+          }
+        );
+      }
+      return allProductsOnPageWithImg;
+    }
+    function callProductListViewedEvent() {
+      const elementsToSend = [];
+      const productsToSend = [];
+      productsOnThePage.forEach((element, index) => {
+        const isProductVisible = productIsVisible(window, element);
+        const isProductAlreadyConsidered = productConsidered.includes(
+          element.href
+        );
+        if (isProductVisible && !isProductAlreadyConsidered) {
+          elementsToSend.push(element);
+          productConsidered.push(element.href);
+        }
+      });
+      if (elementsToSend.length > 0) {
+        elementsToSend.forEach(async (product) => {
+          const handle = product.href.match(
+            /(\/products\/)((\w|-)*)(\?|\$?)/
+          )[2];
+          await rs$
+            .get(`/products/${handle}.json`, undefined, undefined, "JSON")
+            .then((json) => {
+              console.log("Captured through rudderstack script:", json);
+              productsToSend.push(json);
+            })
+            .catch((ex) => {
+              console.debug("Littledata unable to fetch", handle, ex);
+            });
+        });
+        window.setTimeout(() => {
+          if (productsToSend.length > 0) {
+            rudderanalytics.track("Product List Viewed", {
+              products: productsToSend,
+            });
+          }
+        }, 2500);
+      }
+    }
+    productListViews();
+    function productListViews() {
+      productsOnThePage = getAllProductsOnPage();
+      let waitForScroll = window.setTimeout(() => {
+        callProductListViewedEvent();
+      }, 200);
+      document.addEventListener("scroll", () => {
+        //assumes that people need 200ms after scrolling stops to register an impression
+        clearTimeout(waitForScroll);
+
+        waitForScroll = window.setTimeout(() => {
+          callProductListViewedEvent();
+        }, 200);
+      });
+    }
+
     identifyUser();
 
     trackPageEvent();
@@ -474,14 +586,14 @@ var rudderTracking = (function () {
    */
   function findVariantIdInURL() {
     const matches = window.location.href.match(/\d{8,20}/);
-    if(matches) {
-      return matches[0]
+    if (matches) {
+      return matches[0];
     }
     return null;
-  };
+  }
 
   /**
-   * Returns the sku value for the variant matching the id in url 
+   * Returns the sku value for the variant matching the id in url
    * @param {*} payload product payload generated using product mapping
    * @returns {string} matching variant's sku or undefined
    */
@@ -566,7 +678,9 @@ var rudderTracking = (function () {
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        payload.sku = String(getVariantSku(payload) || payload.variant[0].sku || payload.product_id);
+        payload.sku = String(
+          getVariantSku(payload) || payload.variant[0].sku || payload.product_id
+        );
         // we set root-level price property to be equal to first variant's price, if it is not available
         if (payload.variant && !payload.price) {
           payload.price = payload.variant[0].price;
