@@ -85,11 +85,16 @@ var rudderTracking = (function () {
         : "";
     fetchCart()
       .then((cart) => {
-        const allcookies = document.cookie;
-        const cookiearray = allcookies.split(";");
-        if (checkForCartAndUpdateTime(cookiearray, cart)) {
-          updateCookies(cart);
+        const needToUpdateCart = checkCartAttributes(cart);
+        const needToUpdateCookie = checkUpdateTime();
+        if (needToUpdateCart) {
+          updateCartAttribute().then((cart) => {
+            updateCookies();
+            sendIdentifierToRudderWebhook(cart);
+          });
           console.log("Successfully updated cart");
+        } else if (needToUpdateCookie) {
+          updateCookies();
           sendIdentifierToRudderWebhook(cart);
         }
       })
@@ -150,42 +155,50 @@ var rudderTracking = (function () {
     }
   }
 
-  function checkForCartAndUpdateTime(cookiearray, cart) {
-    const cartToken = cart.token;
-    cookiearray.forEach((cookie) => {
-      const keyVal = cookie.split("=");
-      const name = keyVal[0];
-      let value = keyVal[1];
-      if (name === "attributes") {
-        value = JSON.parse(value);
-        return (!checkCartAttributes(value) || checkUpdateTime(value?.rudderUpdatedAt || 0));
-      }
-    });
-    return true;
-  }
   // TODO: add support for product search
 
-  function checkCartAttributes(value) {
-    value = JSON.parse(value);
-    if (value[`${cartToken}`] && value?.rudderUpdatedAt) {
-      return true;
+  function checkCartAttributes(cart) {
+    const { attributes } = cart;
+    if (attributes?.rudderAnonymousId) {
+      return false;
     }
-    return false;
+    return true;
   }
 
-  function updateCookies(cart) {
+  function updateCookies() {
     const expiryInDays = 14;
     const date = new Date();
     date.setTime(date.getTime() + (expiryInDays * 24 * 60 * 60 * 1000));
     const expires = "expires=" + date.toUTCString();
-    const cartToken = cart.token;
-    const anonymousId = rudderanalytics.getAnonymousId();
-    document.cookie = `attributes={${cartToken}: ${anonymousId}, rudderUpdatedAt: ${Date.now()}}; ${expires};`;
+    document.cookie = `rs_shopify_updated_at = ${Date.now()}; ${expires};`;
   }
-  function checkUpdateTime(rudderUpdatedAt) {
-    const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-    const currentTime = Date.now();
-    return currentTime - rudderUpdatedAt > oneHourTimeInMilliSeconds;
+  function updateCartAttribute() {
+    const anonymousId = rudderanalytics.getAnonymousId();
+    return rs$.post(
+      window.Shopify.routes.root + "cart/update.json",
+      {
+        attributes: {
+          rudderAnonymousId: anonymousId,
+        },
+      },
+      undefined,
+      "json"
+    );
+  }
+  function checkUpdateTime() {
+    const allcookies = document.cookie;
+    const cookiearray = allcookies.split(";");
+    cookiearray.forEach((cookie) => {
+      const keyVal = cookie.split("=");
+      const name = keyVal[0];
+      const value = keyVal[1];
+      if (name === "rs_shopify_updated_at") {
+        const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
+        const currentTime = Date.now();
+        return currentTime - value > oneHourTimeInMilliSeconds;
+      }
+    });
+    return true;
   }
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
