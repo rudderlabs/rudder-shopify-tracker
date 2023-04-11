@@ -85,11 +85,12 @@ var rudderTracking = (function () {
         : "";
     fetchCart()
       .then((cart) => {
-        if (!checkCartAttributes(cart) || checkUpdateTime(cart)) {
-          updateCartAttribute().then((cart) => {
-            console.log("Successfully updated cart");
-            sendIdentifierToRudderWebhook(cart);
-          });
+        const allcookies = document.cookie;
+        const cookiearray = allcookies.split(";");
+        if (checkForCartAndUpdateTime(cookiearray, cart)) {
+          updateCookies(cart);
+          console.log("Successfully updated cart");
+          sendIdentifierToRudderWebhook(cart);
         }
       })
       .catch((error) => {
@@ -110,7 +111,7 @@ var rudderTracking = (function () {
       if (
         heapCookieObject &&
         cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-          "captured"
+        "captured"
       ) {
         rudderanalytics.identify(userId, {
           heapUserID: heapCookieObject.userId,
@@ -134,7 +135,7 @@ var rudderTracking = (function () {
     if (
       heapCookieObject &&
       cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-        "captured"
+      "captured"
     ) {
       rudderanalytics.identify(rudderanalytics.getUserId(), {
         heapUserID: heapCookieObject.userId,
@@ -149,34 +150,40 @@ var rudderTracking = (function () {
     }
   }
 
+  function checkForCartAndUpdateTime(cookiearray, cart) {
+    const cartToken = cart.token;
+    cookiearray.forEach((cookie) => {
+      const keyVal = cookie.split("=");
+      const name = keyVal[0];
+      let value = keyVal[1];
+      if (name === "attributes") {
+        value = JSON.parse(value);
+        return (!checkCartAttributes(value) || checkUpdateTime(value?.rudderUpdatedAt || 0));
+      }
+    });
+    return true;
+  }
   // TODO: add support for product search
 
-  function checkCartAttributes(cart) {
-    const { attributes } = cart;
-    if (attributes?.rudderAnonymousId && attributes?.rudderUpdatedAt) {
+  function checkCartAttributes(value) {
+    value = JSON.parse(value);
+    if (value[`${cartToken}`] && value?.rudderUpdatedAt) {
       return true;
     }
     return false;
   }
 
-  function updateCartAttribute() {
+  function updateCookies(cart) {
+    const expiryInDays = 14;
+    const date = new Date();
+    date.setTime(date.getTime() + (expiryInDays * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    const cartToken = cart.token;
     const anonymousId = rudderanalytics.getAnonymousId();
-    return rs$.post(
-      window.Shopify.routes.root + "cart/update.json",
-      {
-        attributes: {
-          rudderAnonymousId: anonymousId,
-          rudderUpdatedAt: Date.now(),
-        },
-      },
-      undefined,
-      "json"
-    );
+    document.cookie = `attributes={${cartToken}: ${anonymousId}, rudderUpdatedAt: ${Date.now()}}; ${expires};`;
   }
-
-  function checkUpdateTime(cart) {
+  function checkUpdateTime(rudderUpdatedAt) {
     const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-    const { rudderUpdatedAt } = cart.attributes;
     const currentTime = Date.now();
     return currentTime - rudderUpdatedAt > oneHourTimeInMilliSeconds;
   }
@@ -187,7 +194,6 @@ var rudderTracking = (function () {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
       cartToken: cart.token,
-      cart: cart,
     };
     rs$
       .ajax({
@@ -474,7 +480,7 @@ var rudderTracking = (function () {
    */
   function findVariantIdInURL() {
     const matches = window.location.href.match(/\d{8,20}/);
-    if(matches) {
+    if (matches) {
       return matches[0]
     }
     return null;
