@@ -166,9 +166,9 @@ var rudderTracking = (function () {
   }
 
   function updateCookies() {
-    const expiryInDays = 14;
+    const expiryInHours = 2;
     const date = new Date();
-    date.setTime(date.getTime() + (expiryInDays * 24 * 60 * 60 * 1000));
+    date.setTime(date.getTime() + (expiryInHours * 60 * 60 * 1000));
     const expires = "expires=" + date.toUTCString();
     document.cookie = `rs_shopify_updated_at = ${Date.now()}; ${expires};`;
   }
