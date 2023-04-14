@@ -166,11 +166,13 @@ var rudderTracking = (function () {
   }
 
   function updateCookies() {
-    const expiryInHours = 2;
-    const date = new Date();
-    date.setTime(date.getTime() + (expiryInHours * 60 * 60 * 1000));
-    const expires = "expires=" + date.toUTCString();
-    document.cookie = `rs_shopify_updated_at = ${Date.now()}; ${expires};`;
+    const cookieOptions = {
+      action: "set",
+      expire_hr: 2,
+      name: "rs_shopify_updated_at",
+      value: `${Date.now()}`
+    }
+    cookie_action(cookieOptions);
   }
   function updateCartAttribute() {
     const anonymousId = rudderanalytics.getAnonymousId();
@@ -186,19 +188,11 @@ var rudderTracking = (function () {
     );
   }
   function checkUpdateTime() {
-    const allcookies = document.cookie;
-    const cookiearray = allcookies.split(";");
-    cookiearray.forEach((cookie) => {
-      const keyVal = cookie.split("=");
-      const name = keyVal[0];
-      const value = keyVal[1];
-      if (name === "rs_shopify_updated_at") {
-        const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-        const currentTime = Date.now();
-        return currentTime - value > oneHourTimeInMilliSeconds;
-      }
-    });
-    return true;
+    const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
+    const currentTime = Date.now();
+    const cookies = cookie_parse();
+    const lastupdatedValue = cookies?.rs_shopify_updated_at || 0;
+    return currentTime - lastupdatedValue > oneHourTimeInMilliSeconds;
   }
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
