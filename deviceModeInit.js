@@ -85,16 +85,16 @@ var rudderTracking = (function () {
         : "";
     fetchCart()
       .then((cart) => {
-        const needToUpdateCart = checkCartAttributes(cart);
-        const needToUpdateCookie = checkUpdateTime();
+        const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
+        const needToUpdateCookie = checkCookieNeedsToBeUpdated();
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            updateTimeStampFoIdentifierEvent();
+            updateTimeStampForIdentifierEvent();
             sendIdentifierToRudderWebhook(cart);
           });
           console.log("Successfully updated cart");
         } else if (needToUpdateCookie) {
-          updateTimeStampFoIdentifierEvent();
+          updateTimeStampForIdentifierEvent();
           sendIdentifierToRudderWebhook(cart);
         }
       })
@@ -157,7 +157,7 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-  function checkCartAttributes(cart) {
+  function checkCartNeedsToBeUpdated(cart) {
     const { attributes } = cart;
     if (attributes?.rudderAnonymousId) {
       return false;
@@ -165,7 +165,7 @@ var rudderTracking = (function () {
     return true;
   }
 
-  function updateTimeStampFoIdentifierEvent() {
+  function updateTimeStampForIdentifierEvent() {
     const cookieOptions = {
       action: "set",
       expire_hr: 2,
@@ -187,15 +187,14 @@ var rudderTracking = (function () {
       "json"
     );
   }
-  function checkUpdateTime() {
+  function checkCookieNeedsToBeUpdated() {
     const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
     const currentTime = Date.now();
     const prev_rs_shopify_cart_identified_at = cookie_action({
       action: "get",
       name: "rs_shopify_cart_identified_at",
     });
-    const lastupdatedValue = cookies?.rs_shopify_cart_identified_at || 0;
-    return currentTime - lastupdatedValue > oneHourTimeInMilliSeconds;
+    return currentTime - prev_rs_shopify_cart_identified_at > oneHourTimeInMilliSeconds;
   }
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
