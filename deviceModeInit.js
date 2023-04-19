@@ -2,7 +2,6 @@ var rudderTracking = (function () {
   const pages = {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
-    "/collections/": "Product List Viewed",
     "/account/register": "Registration Viewed",
     "/thank_you": "Checkout Step Completed",
     "/account/login": "Login Viewed",
@@ -60,9 +59,7 @@ var rudderTracking = (function () {
     { dest: "category", src: "product_type" },
     { dest: "variant", src: "variants" },
     { dest: "url", src: "url" },
-  ];
-  const productConsidered = [];
-  let productsOnThePage = [];
+  ];  
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
@@ -154,10 +151,10 @@ var rudderTracking = (function () {
       }
       return allProductsOnPageWithImg;
     }
-    function callProductListViewedEvent() {
+    function callProductListViewedEvent(productsOnThePage, productConsidered) {
       const elementsToSend = [];
       const productsToSend = [];
-      productsOnThePage.forEach((element, index) => {
+      productsOnThePage.forEach((element) => {
         const isProductVisible = productIsVisible(window, element);
         const isProductAlreadyConsidered = productConsidered.includes(
           element.href
@@ -174,12 +171,23 @@ var rudderTracking = (function () {
           )[2];
           await rs$
             .get(`/products/${handle}.json`, undefined, undefined, "JSON")
-            .then((json) => {
-              console.log("Captured through rudderstack script:", json);
-              productsToSend.push(json);
+            .then((data) => {
+              const products = [];
+              const rudderstackProduct = propertyMapping(
+                data.product,
+                productMapping
+              );
+              rudderstackProduct.currency = pageCurrency;
+              rudderstackProduct.sku = String(
+                rudderstackProduct.variant[0].sku ||
+                  rudderstackProduct.product_id
+              );
+              rudderstackProduct.price = rudderstackProduct.variant[0].price;
+              products.push(rudderstackProduct);
+              productsToSend.push(rudderstackProduct);
             })
-            .catch((ex) => {
-              console.debug("Littledata unable to fetch", handle, ex);
+            .catch((error) => {
+              console.debug("Rudderstack unable to fetch", handle, error);
             });
         });
         window.setTimeout(() => {
@@ -193,16 +201,17 @@ var rudderTracking = (function () {
     }
     productListViews();
     function productListViews() {
-      productsOnThePage = getAllProductsOnPage();
+      const productsOnThePage = getAllProductsOnPage();
+      const productConsidered = [];
       let waitForScroll = window.setTimeout(() => {
-        callProductListViewedEvent();
+        callProductListViewedEvent(productsOnThePage, productConsidered);
       }, 200);
       document.addEventListener("scroll", () => {
         //assumes that people need 200ms after scrolling stops to register an impression
         clearTimeout(waitForScroll);
 
         waitForScroll = window.setTimeout(() => {
-          callProductListViewedEvent();
+          callProductListViewedEvent(productsOnThePage, productConsidered);
         }, 200);
       });
     }
