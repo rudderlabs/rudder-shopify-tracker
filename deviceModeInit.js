@@ -83,11 +83,17 @@ var rudderTracking = (function () {
         : "";
     fetchCart()
       .then((cart) => {
-        if (!checkCartAttributes(cart) || checkUpdateTime(cart)) {
+        const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
+        const needToUpdateCookie = checkCookieNeedsToBeUpdated();
+        if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            console.log("Successfully updated cart");
+            updateTimeStampForIdentifierEvent();
             sendIdentifierToRudderWebhook(cart);
           });
+          console.log("Successfully updated cart");
+        } else if (needToUpdateCookie) {
+          updateTimeStampForIdentifierEvent();
+          sendIdentifierToRudderWebhook(cart);
         }
       })
       .catch((error) => {
@@ -231,7 +237,7 @@ var rudderTracking = (function () {
       if (
         heapCookieObject &&
         cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-          "captured"
+        "captured"
       ) {
         rudderanalytics.identify(userId, {
           heapUserID: heapCookieObject.userId,
@@ -255,7 +261,7 @@ var rudderTracking = (function () {
     if (
       heapCookieObject &&
       cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-        "captured"
+      "captured"
     ) {
       rudderanalytics.identify(rudderanalytics.getUserId(), {
         heapUserID: heapCookieObject.userId,
@@ -272,14 +278,23 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-  function checkCartAttributes(cart) {
+  function checkCartNeedsToBeUpdated(cart) {
     const { attributes } = cart;
-    if (attributes?.rudderAnonymousId && attributes?.rudderUpdatedAt) {
-      return true;
+    if (attributes?.rudderAnonymousId) {
+      return false;
     }
-    return false;
+    return true;
   }
 
+  function updateTimeStampForIdentifierEvent() {
+    const cookieOptions = {
+      action: "set",
+      expire_hr: 2,
+      name: "rs_shopify_cart_identified_at",
+      value: `${Date.now()}`
+    }
+    cookie_action(cookieOptions);
+  }
   function updateCartAttribute() {
     const anonymousId = rudderanalytics.getAnonymousId();
     return rs$.post(
@@ -287,19 +302,20 @@ var rudderTracking = (function () {
       {
         attributes: {
           rudderAnonymousId: anonymousId,
-          rudderUpdatedAt: Date.now(),
         },
       },
       undefined,
       "json"
     );
   }
-
-  function checkUpdateTime(cart) {
+  function checkCookieNeedsToBeUpdated() {
     const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-    const { rudderUpdatedAt } = cart.attributes;
     const currentTime = Date.now();
-    return currentTime - rudderUpdatedAt > oneHourTimeInMilliSeconds;
+    const prev_rs_shopify_cart_identified_at = cookie_action({
+      action: "get",
+      name: "rs_shopify_cart_identified_at",
+    });
+    return currentTime - prev_rs_shopify_cart_identified_at > oneHourTimeInMilliSeconds;
   }
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
@@ -308,7 +324,6 @@ var rudderTracking = (function () {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
       cartToken: cart.token,
-      cart: cart,
     };
     rs$
       .ajax({
