@@ -86,16 +86,11 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        const needToUpdateCookie = checkCookieNeedsToBeUpdated();
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            updateTimeStampForIdentifierEvent();
-            sendIdentifierToRudderWebhook(cart);
+            sendRudderIdentifierEventPeriodically(cart);
           });
           console.log("Successfully updated cart");
-        } else if (needToUpdateCookie) {
-          updateTimeStampForIdentifierEvent();
-          sendIdentifierToRudderWebhook(cart);
         }
       })
       .catch((error) => {
@@ -157,23 +152,19 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-  function checkCartNeedsToBeUpdated(cart) {
-    const { attributes } = cart;
-    if (attributes?.rudderAnonymousId) {
-      return false;
-    }
-    return true;
+  function sendRudderIdentifierEventPeriodically(cart) {
+    const timeInterval = 50 * 60 * 1000; // 50 mins
+    sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier for the first time
+    setInterval(function () {
+      sendIdentifierToRudderWebhook(cart);
+    }, timeInterval);
   }
 
-  function updateTimeStampForIdentifierEvent() {
-    const cookieOptions = {
-      action: "set",
-      expire_hr: 2,
-      name: "rs_shopify_cart_identified_at",
-      value: `${Date.now()}`
-    }
-    cookie_action(cookieOptions);
+  function checkCartNeedsToBeUpdated(cart) {
+    const { attributes } = cart;
+    return !(attributes?.rudderAnonymousId);
   }
+
   function updateCartAttribute() {
     const anonymousId = rudderanalytics.getAnonymousId();
     return rs$.post(
@@ -187,15 +178,7 @@ var rudderTracking = (function () {
       "json"
     );
   }
-  function checkCookieNeedsToBeUpdated() {
-    const oneHourTimeInMilliSeconds = 60 * 60 * 1000;
-    const currentTime = Date.now();
-    const prev_rs_shopify_cart_identified_at = cookie_action({
-      action: "get",
-      name: "rs_shopify_cart_identified_at",
-    });
-    return currentTime - prev_rs_shopify_cart_identified_at > oneHourTimeInMilliSeconds;
-  }
+
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
       "https://dataplaneUrl/v1/webhook?writeKey=writeKey_placeHolder";
