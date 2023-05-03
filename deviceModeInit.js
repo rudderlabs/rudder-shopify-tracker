@@ -86,11 +86,15 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
+        const needToUpdateCookie = checkCookieNeedsToBeUpdated();
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            sendRudderIdentifierEventPeriodically(cart);
+            sendRudderIdentifierEventPeriodically(cart); // sending rudderIdentifier periodically after this
           });
           console.log("Successfully updated cart");
+        }
+        else if (needToUpdateCookie) {
+
         }
       })
       .catch((error) => {
@@ -153,10 +157,14 @@ var rudderTracking = (function () {
   // TODO: add support for product search
 
   function sendRudderIdentifierEventPeriodically(cart) {
-    const timeInterval = 50 * 60 * 1000; // 50 mins
+    const timeInterval = 60 * 1000; // 50 mins
     sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier for the first time
+
+    /* sending rudderIdentifier periodically after this
+    * in case user is on same page for more than 50 mins identifier event will automatically be sent regularly 
+    */
     setInterval(function () {
-      sendIdentifierToRudderWebhook(cart);
+      sendIdentifierToRudderWebhook(cart); 
     }, timeInterval);
   }
 
@@ -178,6 +186,15 @@ var rudderTracking = (function () {
       "json"
     );
   }
+  function checkCookieNeedsToBeUpdated() {
+    const oneHourTimeInMilliSeconds = 50 * 60 * 1000; // 50 mins
+    const currentTime = Date.now();
+    const prev_rs_shopify_cart_identified_at = cookie_action({
+      action: "get",
+      name: "rs_shopify_cart_identified_at",
+    });
+    return currentTime - prev_rs_shopify_cart_identified_at > oneHourTimeInMilliSeconds;
+  }
 
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
@@ -195,13 +212,22 @@ var rudderTracking = (function () {
         data: JSON.stringify(data),
       })
       .then(() => {
+        updateTimeStampForIdentifierEvent();
         console.log("Successfully sent identifier event to rudderstack");
       })
       .catch(() => {
         console.log("Failed to sent identifier event to rudderstack");
       });
   }
-
+  function updateTimeStampForIdentifierEvent() {
+    const cookieOptions = {
+      action: "set",
+      expire_hr: 2,
+      name: "rs_shopify_cart_identified_at",
+      value: `${Date.now()}`
+    }
+    cookie_action(cookieOptions);
+  }
   function fetchCart() {
     return rs$.get(
       window.Shopify.routes.root + "cart.js",
