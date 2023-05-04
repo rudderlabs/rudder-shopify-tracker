@@ -86,26 +86,39 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        const needToUpdateCookie = checkCookieNeedsToBeUpdated();
+
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            sendRudderIdentifierEventPeriodically(cart); // sending rudderIdentifier periodically after this
+            sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
           });
           console.log("Successfully updated cart");
-        }
-        else if (needToUpdateCookie) {
-
         }
       })
       .catch((error) => {
         console.log("Error occurred while updating cart:", error);
       });
+
+    checkAndUpdateRudderIdentifier();
     identifyUser();
 
     trackPageEvent();
     trackNamedPageView();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
+  }
+  function checkAndUpdateRudderIdentifier() {
+    const needToUpdateCookie = checkCookieNeedsToBeUpdated();
+    if (needToUpdateCookie) {
+      fetchCart().then((cart) => {
+        sendIdentifierToRudderWebhook(cart);
+      })
+    }
+    const timeIntervalForSendingRudderIdentifier = 5 * 60 * 1000; // 5 mins
+    setInterval(function () {
+      fetchCart().then((cart) => {
+        sendIdentifierToRudderWebhook(cart);
+      })
+    }, timeIntervalForSendingRudderIdentifier);
   }
   function identifyUser() {
     if (
@@ -156,17 +169,7 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-  function sendRudderIdentifierEventPeriodically(cart) {
-    const timeInterval = 60 * 1000; // 50 mins
-    sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier for the first time
 
-    /* sending rudderIdentifier periodically after this
-    * in case user is on same page for more than 50 mins identifier event will automatically be sent regularly 
-    */
-    setInterval(function () {
-      sendIdentifierToRudderWebhook(cart); 
-    }, timeInterval);
-  }
 
   function checkCartNeedsToBeUpdated(cart) {
     const { attributes } = cart;
