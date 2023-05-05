@@ -86,7 +86,6 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
             sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
@@ -98,7 +97,7 @@ var rudderTracking = (function () {
         console.log("Error occurred while updating cart:", error);
       });
 
-    checkAndUpdateRudderIdentifier();
+    checkAndSendRudderIdentifier();
     identifyUser();
 
     trackPageEvent();
@@ -106,19 +105,9 @@ var rudderTracking = (function () {
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
-  function checkAndUpdateRudderIdentifier() {
-    const needToUpdateCookie = checkCookieNeedsToBeUpdated();
-    if (needToUpdateCookie) {
-      fetchCart().then((cart) => {
-        sendIdentifierToRudderWebhook(cart);
-      })
-    }
-    const timeIntervalForSendingRudderIdentifier = 5 * 60 * 1000; // 5 mins
-    setInterval(function () {
-      fetchCart().then((cart) => {
-        sendIdentifierToRudderWebhook(cart);
-      })
-    }, timeIntervalForSendingRudderIdentifier);
+  function checkAndSendRudderIdentifier() {
+    const timeForCookieUpdate = getTimeForCookieUpdate();
+    setTimeout(sendRudderIdentifierPeriodically(), timeForCookieUpdate);
   }
   function identifyUser() {
     if (
@@ -169,13 +158,21 @@ var rudderTracking = (function () {
 
   // TODO: add support for product search
 
-
-
   function checkCartNeedsToBeUpdated(cart) {
     const { attributes } = cart;
     return !(attributes?.rudderAnonymousId);
   }
-
+  function sendRudderIdentifierPeriodically() {
+    getAndSendIdentifierToRudderWebhook();
+    const cookieUpdateFixedInterval = 50 * 60 * 1000; // 50 mins
+    setInterval(getAndSendIdentifierToRudderWebhook
+      , cookieUpdateFixedInterval);
+  }
+  function getAndSendIdentifierToRudderWebhook(cart) {
+    fetchCart().then((cart) => {
+      sendIdentifierToRudderWebhook(cart);
+    })
+  }
   function updateCartAttribute() {
     const anonymousId = rudderanalytics.getAnonymousId();
     return rs$.post(
@@ -189,14 +186,14 @@ var rudderTracking = (function () {
       "json"
     );
   }
-  function checkCookieNeedsToBeUpdated() {
-    const oneHourTimeInMilliSeconds = 50 * 60 * 1000; // 50 mins
+  function getTimeForCookieUpdate() {
+    const cookieUpdateFixedInterval = 50 * 60 * 1000; // 50 mins
     const currentTime = Date.now();
     const prev_rs_shopify_cart_identified_at = cookie_action({
       action: "get",
       name: "rs_shopify_cart_identified_at",
     });
-    return currentTime - prev_rs_shopify_cart_identified_at > oneHourTimeInMilliSeconds;
+    return cookieUpdateFixedInterval - currentTime + prev_rs_shopify_cart_identified_at;
   }
 
   function sendIdentifierToRudderWebhook(cart) {
