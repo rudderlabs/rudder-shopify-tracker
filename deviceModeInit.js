@@ -185,10 +185,10 @@ var rudderTracking = (function () {
               );
               rudderstackProduct.currency = pageCurrency;
               rudderstackProduct.sku = String(
-                rudderstackProduct.variant[0].sku ||
+                rudderstackProduct.variant?.sku ||
                   rudderstackProduct.product_id
               );
-              rudderstackProduct.price = rudderstackProduct.variant[0].price;
+              rudderstackProduct.price = rudderstackProduct.variant?.price;
               products.push(rudderstackProduct);
               productsToSend.push(rudderstackProduct);
             })
@@ -408,7 +408,12 @@ var rudderTracking = (function () {
         }
       } else {
         if (payload[j.src]) {
-          destinationPayload[j.dest] = payload[j.src];
+          if (j.src === "variants" && Array.isArray(payload[j.src])) {
+            destinationPayload[j.dest] = payload[j.src][0];
+          } else {
+            destinationPayload[j.dest] = payload[j.src];
+          }
+          // destinationPayload[j.dest] = payload[j.src];
           delete payload[j.src];
         }
       }
