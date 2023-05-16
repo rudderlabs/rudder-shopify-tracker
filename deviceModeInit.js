@@ -204,6 +204,7 @@ var rudderTracking = (function () {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
       cartToken: cart.token,
+      cart:cart
     };
     rs$
       .ajax({
