@@ -193,7 +193,7 @@ var rudderTracking = (function () {
       action: "get",
       name: "rs_shopify_cart_identified_at",
     }));
-    const timeToUpdate = thresholdTime + last_updated_at - currentTime;
+    const timeToUpdate = thresholdTime - (  currentTime - last_updated_at );
     return timeToUpdate
   }
 
