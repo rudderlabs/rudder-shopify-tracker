@@ -187,13 +187,14 @@ var rudderTracking = (function () {
     );
   }
   function getTimeForCookieUpdate() {
-    const cookieUpdateFixedInterval = 50 * 60 * 1000; // 50 mins
+    const thresholdTime = 50 * 60 * 1000; // 50 mins
     const currentTime = Date.now();
-    const prev_rs_shopify_cart_identified_at = cookie_action({
+    const last_updated_at = Number(cookie_action({
       action: "get",
       name: "rs_shopify_cart_identified_at",
-    });
-    return cookieUpdateFixedInterval + prev_rs_shopify_cart_identified_at  - currentTime;
+    }));
+    const timeToUpdate = thresholdTime + last_updated_at - currentTime;
+    return timeToUpdate
   }
 
   function sendIdentifierToRudderWebhook(cart) {
