@@ -99,7 +99,6 @@ var rudderTracking = (function () {
       });
     checkAndSendSessionRudderIdentifierPeriodically();
     checkAndSendRudderIdentifier();
-    isSendIdentifyCallsEnabled();
     identifyUser();
     trackPageEvent();
     trackNamedPageView();
@@ -209,7 +208,7 @@ var rudderTracking = (function () {
       action: "get",
       name: "rs_shopify_cart_identified_at",
     }));
-    const timeToUpdate = thresholdTime - (currentTime - last_updated_at);
+    const timeToUpdate = thresholdTime - (  currentTime - last_updated_at );
     return timeToUpdate
   }
 
@@ -237,7 +236,7 @@ var rudderTracking = (function () {
         console.log("Failed to sent identifier event to rudderstack");
       });
   }
-
+  
   function updateTimeStampForIdentifierEvent() {
     const cookieOptions = {
       action: "set",
