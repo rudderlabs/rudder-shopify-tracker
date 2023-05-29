@@ -11,6 +11,7 @@ var rudderTracking = (function () {
   const pageURL = window.location.href;
   let pageCurrency = "";
   let userId;
+  let disableClientIdentifierEvents;
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -61,11 +62,36 @@ var rudderTracking = (function () {
     { dest: "variant", src: "variants" },
     { dest: "url", src: "url" },
   ];
+  /**
+  * This function checks if Customer wants us to send Identify Event
+  */
+  function isClientSideIdentifierEventsDisabled() {
+    const authKey = btoa("writeKey_placeHolder" + ":");
+    const webhookUrl = "configUrl_placeholder/sourceConfig";
+    return new Promise(function (resolve, reject) {
+      rs$
+        .ajax({
+          url: webhookUrl,
+          method: "GET",
+          contentType: "application/json",
+          beforeSend: function (xhr) {
+            // Set the Authorization header
+            xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
+          },
+          success: function (response) {
+            resolve(response.source?.config?.disableClientSideIdentifier);
+          },
+          error: function (xhr, status, error) {
+            console.log("Couldn't fetch Source Config due error: " + error);
+            resolve(false);
+          }
+        })
+    });
+  }
 
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
-
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({
@@ -101,7 +127,12 @@ var rudderTracking = (function () {
       .catch((error) => {
         console.log("Error occurred while updating cart:", error);
       });
-    identifyUser();
+    isClientSideIdentifierEventsDisabled().then(response => {
+      disableClientIdentifierEvents = response;
+      if (!disableClientIdentifierEvents) {
+        identifyUser();
+      }
+    });
 
     trackPageEvent();
     trackNamedPageView();
@@ -345,10 +376,15 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
-      rs$("#create_customer").submit(userRegistered);
+      if (!disableClientIdentifierEvents) {
+        rs$("#create_customer").submit(userRegistered);
+      }
     } else if (pages[path] === "Login Viewed") {
       rudderanalytics.track(pages[path], properties);
-      rs$("#customer_login").submit(userLoggedIn);
+      if (!disableClientIdentifierEvents) {
+        rs$("#customer_login").submit(userLoggedIn);
+      }
+
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
