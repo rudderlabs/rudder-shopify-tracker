@@ -74,6 +74,7 @@ var rudderTracking = (function () {
           url: webhookUrl,
           method: "GET",
           contentType: "application/json",
+          timeout: 2000, // 2 seconds timeout
           beforeSend: function (xhr) {
             // Set the Authorization header
             xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
