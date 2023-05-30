@@ -80,10 +80,11 @@ var rudderTracking = (function () {
             xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
           },
           success: function (response) {
-            if(response.source?.config?.disableClientSideIdentifier === true){
+            if (response.source?.config?.disableClientSideIdentifier === true) {
               resolve(false)
+            } else {
+              resolve(true);
             }
-            resolve(true);
           },
           error: function (xhr, status, error) {
             console.log("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
@@ -129,15 +130,14 @@ var rudderTracking = (function () {
     checkAndSendRudderIdentifier();
 
     isClientSideIdentifierEventsEnabled().then(response => {
-      if(response === false){
-        enableClientIdentifierEvents = response;
-      }else{
-        enableClientIdentifierEvents = true; // default value
-      }
-      if (enableClientIdentifierEvents) {
+      if (!!response) {
+        enableClientIdentifierEvents = true;
         identifyUser();
+      } else {
+        enableClientIdentifierEvents = false;
       }
     });
+
 
     trackPageEvent();
     trackNamedPageView();
