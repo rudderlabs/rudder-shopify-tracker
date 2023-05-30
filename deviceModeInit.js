@@ -11,7 +11,7 @@ var rudderTracking = (function () {
   const pageURL = window.location.href;
   let pageCurrency = "";
   let userId;
-  let disableClientIdentifierEvents;
+  let enableClientIdentifierEvents;
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -65,7 +65,7 @@ var rudderTracking = (function () {
   /**
   * This function checks if Customer wants us to send Identify Event
   */
-  function isClientSideIdentifierEventsDisabled() {
+  function isClientSideIdentifierEventsEnabled() {
     const authKey = btoa("writeKey_placeHolder" + ":");
     const webhookUrl = "configUrl_placeholder/sourceConfig";
     return new Promise(function (resolve, reject) {
@@ -80,11 +80,14 @@ var rudderTracking = (function () {
             xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
           },
           success: function (response) {
-            resolve(response.source?.config?.disableClientSideIdentifier);
+            if(response.source?.config?.disableClientSideIdentifier === true){
+              resolve(false)
+            }
+            resolve(true);
           },
           error: function (xhr, status, error) {
-            console.log("Couldn't fetch Source Config due error: " + error);
-            resolve(false);
+            console.log("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+            resolve(true);
           }
         })
     });
@@ -125,9 +128,13 @@ var rudderTracking = (function () {
       });
     checkAndSendRudderIdentifier();
 
-    isClientSideIdentifierEventsDisabled().then(response => {
-      disableClientIdentifierEvents = response;
-      if (!disableClientIdentifierEvents) {
+    isClientSideIdentifierEventsEnabled().then(response => {
+      if(response === false){
+        enableClientIdentifierEvents = response;
+      }else{
+        enableClientIdentifierEvents = true; // default value
+      }
+      if (enableClientIdentifierEvents) {
         identifyUser();
       }
     });
@@ -225,7 +232,7 @@ var rudderTracking = (function () {
       action: "get",
       name: "rs_shopify_cart_identified_at",
     }));
-    const timeToUpdate = thresholdTime - (  currentTime - last_updated_at );
+    const timeToUpdate = thresholdTime - (currentTime - last_updated_at);
     return timeToUpdate
   }
 
@@ -236,7 +243,7 @@ var rudderTracking = (function () {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
       cartToken: cart.token,
-      cart:cart
+      cart: cart
     };
     rs$
       .ajax({
@@ -388,12 +395,12 @@ var rudderTracking = (function () {
     };
     if (pages[path] === "Registration Viewed") {
       rudderanalytics.track(pages[path], properties);
-      if (!disableClientIdentifierEvents) {
+      if (enableClientIdentifierEvents) {
         rs$("#create_customer").submit(userRegistered);
       }
     } else if (pages[path] === "Login Viewed") {
       rudderanalytics.track(pages[path], properties);
-      if (!disableClientIdentifierEvents) {
+      if (enableClientIdentifierEvents) {
         rs$("#customer_login").submit(userLoggedIn);
       }
 
