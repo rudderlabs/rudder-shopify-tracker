@@ -207,11 +207,11 @@ var rudderTracking = (function () {
               const rudderstackProduct = propertyMapping(
                 data.product,
                 productMapping
-              );
+              ); // here as well 
               rudderstackProduct.currency = pageCurrency;
               rudderstackProduct.sku = String(
                 rudderstackProduct.variant?.sku ||
-                  rudderstackProduct.product_id
+                rudderstackProduct.product_id
               );
               rudderstackProduct.price = rudderstackProduct.variant?.price;
               products.push(rudderstackProduct);
@@ -436,7 +436,7 @@ var rudderTracking = (function () {
     }
   }
 
-  function propertyMapping(payload, mappingJsonObject) {
+  function propertyMapping(payload, mappingJsonObject, variantId = null) {
     const destinationPayload = {};
     mappingJsonObject.forEach((j) => {
       if (j.src.indexOf(".") > -1) {
@@ -454,12 +454,18 @@ var rudderTracking = (function () {
         }
       } else {
         if (payload[j.src]) {
+          // If there are many variants for a product then we will be sending data for the one currently visible 
           if (j.src === "variants" && Array.isArray(payload[j.src])) {
-            destinationPayload[j.dest] = payload[j.src][0];
+            if (variantId || variantId != null) {
+              const variant = j.src.find(i => i.variantId === variantId);
+              destinationPayload[j.dest] = variant;
+            } else {
+              // if we could not get variantId then by default will send the first variant object of array
+              destinationPayload[j.dest] = payload[j.src][0];
+            }
           } else {
             destinationPayload[j.dest] = payload[j.src];
           }
-          // destinationPayload[j.dest] = payload[j.src];
           delete payload[j.src];
         }
       }
@@ -697,7 +703,7 @@ var rudderTracking = (function () {
     _getJsonData(url)
       .done(function (data) {
         console.log("[Product Clicked] data.product", data.product);
-        const payload = propertyMapping(data.product, productMapping);
+        const payload = propertyMapping(data.product, productMapping); //  Qs.: Since clicking on product should send details about the product shouldn't we send all the variants here
         payload.currency = pageCurrency;
         // payload.sku = payload.variant
         //   .map((item) => item.sku)
@@ -715,7 +721,12 @@ var rudderTracking = (function () {
         console.log(error);
       });
   }
-
+  function getCurrentVariantId() {
+    const parameters = window.location.search;
+    let params = new URLSearchParams(parameters);
+    const variantId = params.get("variant")
+    return variantId;
+  }
   // mapping seems fine
   function productListPage(event) {
     rs$("a")
@@ -754,16 +765,17 @@ var rudderTracking = (function () {
     if (url === null) {
       url = getUrl();
     }
+    const variantId = getCurrentVariantId();
     _getJsonData(url)
       .done(function (data) {
-        const payload = propertyMapping(data.product, productMapping);
+        const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
         payload.sku = String(
-          getVariantSku(payload) || payload.variant[0].sku || payload.product_id
+          getVariantSku(payload) || payload.variant.sku || payload.product_id
         );
         // we set root-level price property to be equal to first variant's price, if it is not available
         if (payload.variant && !payload.price) {
-          payload.price = payload.variant[0].price;
+          payload.price = payload.variant.price;
         }
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
