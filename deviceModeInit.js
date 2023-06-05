@@ -111,9 +111,7 @@ var rudderTracking = (function () {
     }
 
     htmlSelector.buttonAddToCart =
-      rs$('form[action="/cart/add"] [type="submit"]').length === 1
-        ? rs$('form[action="/cart/add"] [type="submit"]')
-        : "";
+      rs$('form[action="/cart/add"] [type="submit"]')
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
