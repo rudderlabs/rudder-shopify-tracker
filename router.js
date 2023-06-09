@@ -46,7 +46,7 @@ router.get("/load", async (ctx) => {
   d = d.replace("configBackendUrl", configUrl);
 
   const pollTimeForSessionIdentifierCheck = process.env?.pollTimeForSessionIdentifierCheck || 5 * 60;
-  deviceModeInit = deviceModeInit.replace(/sessionIdentifierPollTime_placeHolder/g, pollTimeForSessionIdentifierCheckesponse);
+  deviceModeInit = deviceModeInit.replace(/sessionIdentifierPollTime_placeHolder/g, pollTimeForSessionIdentifierCheck);
   deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, dataPlaneUrl);
   deviceModeInit = deviceModeInit.replace(/writeKey_placeHolder/g, writeKey);
   deviceModeInit = deviceModeInit.replace(/configUrl_placeholder/g, configUrl);
