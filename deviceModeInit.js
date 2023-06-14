@@ -117,18 +117,18 @@ var rudderTracking = (function () {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
         if (needToUpdateCart) {
           updateCartAttribute().then((cart) => {
-            getAndSendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
+            sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
             sendSessionIdentifierToRudderWebhook(cart); // sending sessionIdentifier
           });
           console.log("Successfully updated cart");
+        } else {
+          checkAndSendSessionRudderIdentifierPeriodically(cart);
+          checkAndSendRudderIdentifier(cart);
         }
       })
       .catch((error) => {
         console.log("Error occurred while updating cart:", error);
       });
-
-    checkAndSendRudderIdentifier();
-    checkAndSendSessionRudderIdentifierPeriodically();
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
         enableClientIdentifierEvents = true;
@@ -146,18 +146,25 @@ var rudderTracking = (function () {
   // TODO: add support for product search
 
   //fucntions to send sessdionId Identifier
-  function checkAndSendSessionRudderIdentifier() {
+  function checkAndSendSessionRudderIdentifier(cart) {
     const needToUpdateSessionCookie = checkSessionCookieNeedsToBeUpdated(); // This handles sessionId rudderIdentifier
     if (needToUpdateSessionCookie) {
-      fetchCart().then((cart) => {
-        sendSessionIdentifierToRudderWebhook(cart);
-      })
+      sendSessionIdentifierToRudderWebhook(cart);
     }
   }
-  function checkAndSendSessionRudderIdentifierPeriodically() {
+  function updateSessionCookie() {
+    const cookieOptions = {
+      action: "set",
+      expire_hr: 1,
+      name: "rs_shopify_session_id",
+      value: rudderanalytics.getSessionId(),
+    }
+    cookie_action(cookieOptions);
+  }
+  function checkAndSendSessionRudderIdentifierPeriodically(cart) {
     const pollTimeToCheckAndSendSessionIdentifier = "sessionIdentifierPollTime_placeHolder";
-    checkAndSendSessionRudderIdentifier();
-    setInterval(checkAndSendSessionRudderIdentifier, pollTimeToCheckAndSendSessionIdentifier)
+    checkAndSendSessionRudderIdentifier(cart);
+    setInterval(() => { checkAndSendSessionRudderIdentifier(cart) }, pollTimeToCheckAndSendSessionIdentifier)
   }
   function checkSessionCookieNeedsToBeUpdated() {
     const current_session_id = rudderanalytics.getSessionId();
@@ -165,7 +172,7 @@ var rudderTracking = (function () {
       action: "get",
       name: "rs_shopify_session_id",
     });
-    return current_session_id !== prev_rs_session_id
+    return current_session_id != prev_rs_session_id
   }
 
   function sendSessionIdentifierToRudderWebhook(cart) {
@@ -246,36 +253,24 @@ var rudderTracking = (function () {
   }
 
   // functions for sending anonymousId Identifier
-  function checkAndSendRudderIdentifier() {
+  function checkAndSendRudderIdentifier(cart) {
     const timeForCookieUpdate = getTimeForCookieUpdate();
-    setTimeout(sendRudderIdentifierPeriodically, timeForCookieUpdate);
+    setTimeout(() => { sendRudderIdentifierPeriodically(cart) }, timeForCookieUpdate);
   }
-  function sendRudderIdentifierPeriodically() {
-    getAndSendIdentifierToRudderWebhook();
+  function sendRudderIdentifierPeriodically(cart) {
+    sendIdentifierToRudderWebhook(cart);
     const cookieUpdateFixedInterval = 50 * 60 * 1000; // 50 mins
-    setInterval(getAndSendIdentifierToRudderWebhook
+    setInterval(() => { sendIdentifierToRudderWebhook(cart) }
       , cookieUpdateFixedInterval);
   }
-  function getAndSendIdentifierToRudderWebhook(cart = null) {
-    if (cart != null && typeof cart === 'object') {
-      const data = {
-        event: "rudderIdentifier",
-        anonymousId: rudderanalytics.getAnonymousId(),
-        cartToken: cart.token,
-        cart: cart
-      };
-      sendToRudderWebhook(data, 'anonymousIdentifier', updateTimeStampForIdentifierEvent);
-    } else { // when cart object is not passed in parameters 
-      fetchCart().then((cart) => {
-        const data = {
-          event: "rudderIdentifier",
-          anonymousId: rudderanalytics.getAnonymousId(),
-          cartToken: cart.token,
-          cart: cart
-        };
-        sendToRudderWebhook(data, 'anonymousIdentifier', updateTimeStampForIdentifierEvent);
-      })
-    }
+  function sendIdentifierToRudderWebhook(cart) {
+    const data = {
+      event: "rudderIdentifier",
+      anonymousId: rudderanalytics.getAnonymousId(),
+      cartToken: cart.token,
+      cart: cart
+    };
+    sendToRudderWebhook(data, 'anonymousIdentifier', updateTimeStampForIdentifierEvent);
   }
 
   function getTimeForCookieUpdate() {
@@ -288,42 +283,35 @@ var rudderTracking = (function () {
     const timeToUpdate = thresholdTime - (currentTime - last_updated_at);
     return timeToUpdate
   }
-  function sendToRudderWebhook(data, type, updateTypeCookieFunction) {
+  function sendToRudderWebhook(data, type, updateTypeCookieFunction, maxRetries = 3) {
     const webhookUrl =
-      "https://dataplaneUrl_placeHolder/v1/webhook?writeKey=writeKey_placeHolder";
-
-    var maxRetries = 3;
+      "https://dataplaneUrl_placeHol/v1/webhook?writeKey=writeKey_placeHolder";
     var timeToRetry = 1000; // 1 second
-    var needToSendRequest = true;
-    while (needToSendRequest && maxRetries > 0) {
+    if (maxRetries > 0) {
       rs$
         .ajax({
           url: webhookUrl,
           method: "POST",
           contentType: "application/json",
           data: JSON.stringify(data),
-          error: function (xhr, textStatus, errorThrown) {
-            setTimeout(function () {
-              retryRequest(maxRetries - 1);
-            }, timeToRetry);
-          }
         })
         .then(() => {
-          needToSendRequest = false;
           updateTypeCookieFunction();
           console.log(`Successfully sent ${type} event to rudderstack`);
         })
         .catch(() => {
-          console.log(`Failed to sent ${type} event to rudderstack`);
+          setTimeout(() => { sendToRudderWebhook(data, type, updateTypeCookieFunction, maxRetries - 1) }, timeToRetry);
         });
+    } else {
+      console.log(`Failed to sent ${type} event to rudderstack`);
     }
   }
   function updateTimeStampForIdentifierEvent() {
     const cookieOptions = {
       action: "set",
       expire_hr: 1,
-      name: "rs_shopify_session_id",
-      value: rudderanalytics.getSessionId(),
+      name: "rs_shopify_cart_identified_at",
+      value: `${Date.now()}`
     }
     cookie_action(cookieOptions);
   }
