@@ -285,7 +285,7 @@ var rudderTracking = (function () {
   }
   function sendToRudderWebhook(data, type, updateTypeCookieFunction, maxRetries = 3) {
     const webhookUrl =
-      "https://dataplaneUrl_placeHol/v1/webhook?writeKey=writeKey_placeHolder";
+      "https://dataplaneUrl_placeHolder/v1/webhook?writeKey=writeKey_placeHolder";
     var timeToRetry = 1000; // 1 second
     if (maxRetries > 0) {
       rs$
