@@ -93,6 +93,7 @@ var rudderTracking = (function () {
     });
   }
   function init() {
+    const config = { subtree: true, childList: true };
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
     // fetching heap Cookie object
@@ -457,9 +458,11 @@ var rudderTracking = (function () {
           // If there are many variants for a product then we will be sending data for the one currently visible 
           if (j.src === "variants" && Array.isArray(payload[j.src])) {
             if (variantId || variantId != null) {
-              const variant = j.src.find(i => i.variantId === variantId);
-              destinationPayload[j.dest] = variant;
-            } else {
+              const variant = payload[j.src].find(i => i.id === variantId);
+              if (variant) {
+                destinationPayload[j.dest] = variant;
+              }
+            } if (!destinationPayload[j.dest]) {
               // if we could not get variantId then by default will send the first variant object of array
               destinationPayload[j.dest] = payload[j.src][0];
             }
@@ -667,24 +670,12 @@ var rudderTracking = (function () {
   }
 
   /**
-   * Checks whether the url for the product contains the variant id
-   * @returns {string} variant id or null
-   */
-  function findVariantIdInURL() {
-    const matches = window.location.href.match(/\d{8,20}/);
-    if (matches) {
-      return matches[0];
-    }
-    return null;
-  }
-
-  /**
    * Returns the sku value for the variant matching the id in url
    * @param {*} payload product payload generated using product mapping
    * @returns {string} matching variant's sku or undefined
    */
   function getVariantSku(payload) {
-    const variantId = findVariantIdInURL();
+    const variantId = getCurrentVariantId();
     const variant = payload.variant;
     if (variantId) {
       for (let i = 0; i < variant.length; i++) {
@@ -725,7 +716,10 @@ var rudderTracking = (function () {
     const parameters = window.location.search;
     let params = new URLSearchParams(parameters);
     const variantId = params.get("variant")
-    return variantId;
+    if (variantId) {
+      return variantId;
+    }
+    return null;
   }
   // mapping seems fine
   function productListPage(event) {
