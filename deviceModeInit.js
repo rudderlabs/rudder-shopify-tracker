@@ -93,7 +93,9 @@ var rudderTracking = (function () {
     });
   }
   function init() {
-    const config = { subtree: true, childList: true };
+    window.addEventListener('locationchange', function () {
+      console.log('onlocationchange event occurred!');
+    })
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
     // fetching heap Cookie object
@@ -260,6 +262,7 @@ var rudderTracking = (function () {
     trackPageEvent();
     trackNamedPageView();
 
+    // TODO: Correct this listner
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
   function checkAndSendRudderIdentifier() {
@@ -425,7 +428,9 @@ var rudderTracking = (function () {
       case "/products":
       case "/collections/":
       case "/products/":
+
         trackProductPages(mappedPageName);
+        //TODO: check for mappedPageName and give an example for it
         break;
 
       case "/cart":
@@ -495,6 +500,12 @@ var rudderTracking = (function () {
       }
       // If the url is = /products/{productId}
       else if (pagePathArr[pagePathArr.length - 2] == "products") {
+        var replaceState = history.replaceState;
+        history.replaceState = function () {
+          replaceState.apply(history, arguments);
+          // check if variant is changed or for a variantId if product viewed event is already sent (cookies)
+        };
+        const variantId = getCurrentVariantId();
         productPage(mappedPageName);
       }
     }
@@ -755,11 +766,11 @@ var rudderTracking = (function () {
       });
   }
 
-  function productPage(event, url = null) {
+  function productPage(event, url = null, variantId) {
+
     if (url === null) {
       url = getUrl();
     }
-    const variantId = getCurrentVariantId();
     _getJsonData(url)
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping, variantId);
