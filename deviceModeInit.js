@@ -3,7 +3,6 @@ var rudderTracking = (function () {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
     "/account/register": "Registration Viewed",
-    "/thank_you": "Checkout Step Completed",
     "/account/login": "Login Viewed",
   };
   const htmlSelector = {};
@@ -93,9 +92,6 @@ var rudderTracking = (function () {
     });
   }
   function init() {
-    window.addEventListener('locationchange', function () {
-      console.log('onlocationchange event occurred!');
-    })
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
     // fetching heap Cookie object
@@ -112,9 +108,7 @@ var rudderTracking = (function () {
     }
 
     htmlSelector.buttonAddToCart =
-      rs$('form[action="/cart/add"] [type="submit"]').length === 1
-        ? rs$('form[action="/cart/add"] [type="submit"]')
-        : "";
+      rs$('form[action="/cart/add"] [type="submit"]');
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
@@ -428,9 +422,7 @@ var rudderTracking = (function () {
       case "/products":
       case "/collections/":
       case "/products/":
-
-        trackProductPages(mappedPageName);
-        //TODO: check for mappedPageName and give an example for it
+        trackProductPages(mappedPageName); // Ex: Product Viewed
         break;
 
       case "/cart":
@@ -463,7 +455,7 @@ var rudderTracking = (function () {
           // If there are many variants for a product then we will be sending data for the one currently visible 
           if (j.src === "variants" && Array.isArray(payload[j.src])) {
             if (variantId || variantId != null) {
-              const variant = payload[j.src].find(i => i.id === variantId);
+              const variant = payload[j.src].find(i => String(i.id) === variantId);
               if (variant) {
                 destinationPayload[j.dest] = variant;
               }
@@ -500,13 +492,18 @@ var rudderTracking = (function () {
       }
       // If the url is = /products/{productId}
       else if (pagePathArr[pagePathArr.length - 2] == "products") {
+        var alreadyViewedVariants = [];
         var replaceState = history.replaceState;
         history.replaceState = function () {
           replaceState.apply(history, arguments);
-          // check if variant is changed or for a variantId if product viewed event is already sent (cookies)
+          const currentVariant = getCurrentVariantId();
+          if (!alreadyViewedVariants.includes(currentVariant)) {
+            alreadyViewedVariants.push(currentVariant);
+            productPage(mappedPageName, currentVariant);
+          }
         };
         const variantId = getCurrentVariantId();
-        productPage(mappedPageName);
+        productPage(mappedPageName, variantId);
       }
     }
   }
@@ -680,24 +677,6 @@ var rudderTracking = (function () {
       });
   }
 
-  /**
-   * Returns the sku value for the variant matching the id in url
-   * @param {*} payload product payload generated using product mapping
-   * @returns {string} matching variant's sku or undefined
-   */
-  function getVariantSku(payload) {
-    const variantId = getCurrentVariantId();
-    const variant = payload.variant;
-    if (variantId) {
-      for (let i = 0; i < variant.length; i++) {
-        if (String(variant[i].id) === variantId) {
-          return variant[i].sku;
-        }
-      }
-    }
-    return undefined;
-  }
-
   // mapping seems fine
   function handleProductClicked() {
     const url = `${this.href}.json`;
@@ -705,11 +684,8 @@ var rudderTracking = (function () {
     _getJsonData(url)
       .done(function (data) {
         console.log("[Product Clicked] data.product", data.product);
-        const payload = propertyMapping(data.product, productMapping); //  Qs.: Since clicking on product should send details about the product shouldn't we send all the variants here
+        const payload = propertyMapping(data.product, productMapping);
         payload.currency = pageCurrency;
-        // payload.sku = payload.variant
-        //   .map((item) => item.sku)
-        //   .reduce((prev, next) => prev + next);
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$("a")
@@ -753,8 +729,8 @@ var rudderTracking = (function () {
           data.products.forEach((product) => {
             const p = propertyMapping(product, productMapping);
             p.currency = pageCurrency;
-            p.sku = String(p.variant[0].sku || p.product_id);
-            p.price = p.variant[0].price;
+            p.sku = String(p?.variant?.sku || p.product_id);
+            p.price = p?.variant.price;
             payload.products.push(p);
           });
 
@@ -766,8 +742,7 @@ var rudderTracking = (function () {
       });
   }
 
-  function productPage(event, url = null, variantId) {
-
+  function productPage(event, variantId, url = null) {
     if (url === null) {
       url = getUrl();
     }
@@ -775,9 +750,7 @@ var rudderTracking = (function () {
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
-        payload.sku = String(
-          getVariantSku(payload) || payload.variant.sku || payload.product_id
-        );
+        payload.sku = String(payload.variant.sku || payload.product_id); // Don't need get Sku () as we are not having multiple vairants 
         // we set root-level price property to be equal to first variant's price, if it is not available
         if (payload.variant && !payload.price) {
           payload.price = payload.variant.price;
