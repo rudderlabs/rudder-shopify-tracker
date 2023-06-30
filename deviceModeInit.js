@@ -109,7 +109,7 @@ var rudderTracking = (function () {
     }
 
     htmlSelector.buttonAddToCart =
-      rs$('form[action="/cart/add"] [type="submit"]');
+      rs$('form[action="/cart/add"] [type="submit"]')
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
@@ -360,7 +360,7 @@ var rudderTracking = (function () {
 
   function sendIdentifierToRudderWebhook(cart) {
     const webhookUrl =
-      "https://dataplaneUrl/v1/webhook?writeKey=writeKey_placeHolder";
+      "https://dataplaneUrl_placeHolder/v1/webhook?writeKey=writeKey_placeHolder";
     const data = {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
@@ -847,6 +847,6 @@ var rudderTracking = (function () {
   // init();
   script.addEventListener("load", function () {
     rs$ = $.noConflict(true);
-    init();
+  init();
   });
 })();
