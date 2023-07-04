@@ -2,7 +2,6 @@ var rudderTracking = (function () {
   const pages = {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
-    "/collections/": "",
     "/account/register": "Registration Viewed",
     "/account/login": "Login Viewed",
   };
@@ -86,7 +85,7 @@ var rudderTracking = (function () {
             }
           },
           error: function (xhr, status, error) {
-            console.log("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+            console.error("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
             resolve(true);
           }
         })
@@ -95,6 +94,21 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+    let anonymousIdChanged = false;
+    // checking if user logged out after logging in once
+    if (!userId) {
+      const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
+      // when user logs in for first time we make the identify call and set this cookie as captured and hence we are leveraging the same 
+      if (wasUserIdentifiedPreviously) {
+        rudderanalytics.reset(true); // reseting since it is a new user session now after logout operation is done
+        anonymousIdChanged = true;
+        cookie_action({
+          action: "set",
+          name: "rudder_user_id",
+          value: "Not Captured"
+        });
+      }
+    }
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({
@@ -105,7 +119,7 @@ var rudderTracking = (function () {
     if (heapCookieObject) {
       heapCookieObject = JSON.parse(decodeURIComponent(heapCookieObject));
     } else {
-      console.log("No heap cookie found.");
+      console.info("No heap cookie found.");
     }
 
     htmlSelector.buttonAddToCart =
@@ -113,11 +127,11 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        if (needToUpdateCart) {
+        if (anonymousIdChanged || needToUpdateCart) {
           updateCartAttribute().then((cart) => {
             sendIdentifierToRudderWebhook(cart);
           });
-          console.log("Successfully updated cart");
+          console.debug("Successfully updated cart");
         }
         else {
           /* Used else condition as it was otherwise sending rudderIdentifier twice 
@@ -128,7 +142,7 @@ var rudderTracking = (function () {
         }
       })
       .catch((error) => {
-        console.log("Error occurred while updating cart:", error);
+        console.error("Error occurred while updating cart:", error);
       });
     productListViews();
 
@@ -376,10 +390,10 @@ var rudderTracking = (function () {
       })
       .then(() => {
         updateTimeStampForIdentifierEvent();
-        console.log("Successfully sent identifier event to rudderstack");
+        console.debug("Successfully sent identifier event to rudderstack");
       })
       .catch(() => {
-        console.log("Failed to sent identifier event to rudderstack");
+        console.error("Failed to sent identifier event to rudderstack");
       });
   }
   function updateTimeStampForIdentifierEvent() {
@@ -437,7 +451,7 @@ var rudderTracking = (function () {
         break;
 
       default:
-        console.log("RudderStack does not track this page");
+        console.info("RudderStack does not track this page");
     }
   }
 
@@ -487,7 +501,7 @@ var rudderTracking = (function () {
   function trackProductPages(mappedPageName) {
     const pagePath = window.location.pathname;
     if (pagePath === "/collections" || pagePath === "/products") {
-      console.log("RudderStack does not track this page");
+      console.info("RudderStack does not track this page");
     } else {
       const pagePathArr = pagePath.split("/");
       // If the url is = /products or /collections/{collectionId}
@@ -651,7 +665,7 @@ var rudderTracking = (function () {
     const url = getUrl();
     _getJsonData(url)
       .done(function (data) {
-        console.log(data);
+        console.debug(data);
         const { items } = data;
         const { currency } = data;
         const payload = {
@@ -681,7 +695,7 @@ var rudderTracking = (function () {
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
-        console.log(error);
+        console.error(error);
       });
   }
 
@@ -704,7 +718,7 @@ var rudderTracking = (function () {
         rudderanalytics.track("Product Clicked", payload);
       })
       .fail(function (error) {
-        console.log(error);
+        console.error(error);
       });
   }
   function getCurrentVariantId() {
@@ -747,7 +761,7 @@ var rudderTracking = (function () {
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
-        console.log(error);
+        console.error(error);
       });
   }
 
@@ -847,6 +861,6 @@ var rudderTracking = (function () {
   // init();
   script.addEventListener("load", function () {
     rs$ = $.noConflict(true);
-  init();
+    init();
   });
 })();
