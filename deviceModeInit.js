@@ -85,7 +85,7 @@ var rudderTracking = (function () {
             }
           },
           error: function (xhr, status, error) {
-            console.error("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+            console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
             resolve(true);
           }
         })
@@ -119,7 +119,7 @@ var rudderTracking = (function () {
     if (heapCookieObject) {
       heapCookieObject = JSON.parse(decodeURIComponent(heapCookieObject));
     } else {
-      console.info("No heap cookie found.");
+      console.debug("No heap cookie found.");
     }
 
     htmlSelector.buttonAddToCart =
@@ -142,7 +142,7 @@ var rudderTracking = (function () {
         }
       })
       .catch((error) => {
-        console.error("Error occurred while updating cart:", error);
+        console.debug("Error occurred while updating cart:", error);
       });
     productListViews();
 
@@ -393,7 +393,7 @@ var rudderTracking = (function () {
         console.debug("Successfully sent identifier event to rudderstack");
       })
       .catch(() => {
-        console.error("Failed to sent identifier event to rudderstack");
+        console.debug("Failed to sent identifier event to rudderstack");
       });
   }
   function updateTimeStampForIdentifierEvent() {
@@ -695,7 +695,7 @@ var rudderTracking = (function () {
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
-        console.error(error);
+        console.log(error);
       });
   }
 
@@ -718,7 +718,7 @@ var rudderTracking = (function () {
         rudderanalytics.track("Product Clicked", payload);
       })
       .fail(function (error) {
-        console.error(error);
+        console.debug(error);
       });
   }
   function getCurrentVariantId() {
@@ -761,7 +761,7 @@ var rudderTracking = (function () {
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
-        console.error(error);
+        console.debug(error);
       });
   }
 
@@ -861,6 +861,6 @@ var rudderTracking = (function () {
   // init();
   script.addEventListener("load", function () {
     rs$ = $.noConflict(true);
-    init();
+  init();
   });
 })();
