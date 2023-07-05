@@ -94,21 +94,6 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
-    let anonymousIdChanged = false;
-    // checking if user logged out after logging in once
-    if (!userId) {
-      const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
-      // when user logs in for first time we make the identify call and set this cookie as captured and hence we are leveraging the same 
-      if (wasUserIdentifiedPreviously) {
-        rudderanalytics.reset(true); // reseting since it is a new user session now after logout operation is done
-        anonymousIdChanged = true;
-        cookie_action({
-          action: "set",
-          name: "rudder_user_id",
-          value: "Not Captured"
-        });
-      }
-    }
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({
@@ -861,6 +846,6 @@ var rudderTracking = (function () {
   // init();
   script.addEventListener("load", function () {
     rs$ = $.noConflict(true);
-  init();
+    init();
   });
 })();
