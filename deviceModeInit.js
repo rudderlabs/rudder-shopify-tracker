@@ -861,6 +861,6 @@ var rudderTracking = (function () {
   // init();
   script.addEventListener("load", function () {
     rs$ = $.noConflict(true);
-  init();
+    init();
   });
 })();
