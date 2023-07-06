@@ -96,7 +96,7 @@ var rudderTracking = (function () {
    when user logs in for first time we make the identify call and set `rudder_user_id`
    cookie as `captured` and hence we are leveraging the same 
   */
-  const checkIfuserLoggedOut = userId => {
+  const checkIfUserLoggedOut = userId => {
     if (!userId) {
       const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
       if (wasUserIdentifiedPreviously) {
@@ -115,7 +115,7 @@ var rudderTracking = (function () {
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
-    const userLoggedOut = checkIfuserLoggedOut(userId);
+    const userLoggedOut = checkIfUserLoggedOut(userId);
 
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
