@@ -216,10 +216,10 @@ var rudderTracking = (function () {
               ); // here as well 
               rudderstackProduct.currency = pageCurrency;
               rudderstackProduct.sku = String(
-                rudderstackProduct.variant?.sku ||
+                rudderstackProduct.variant[0]?.sku ||
                 rudderstackProduct.product_id
               );
-              rudderstackProduct.price = rudderstackProduct.variant?.price;
+              rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
               products.push(rudderstackProduct);
               productsToSend.push(rudderstackProduct);
             })
@@ -463,11 +463,11 @@ var rudderTracking = (function () {
             if (variantId || variantId != null) {
               const variant = payload[j.src].find(i => String(i.id) === variantId);
               if (variant) {
-                destinationPayload[j.dest] = variant;
+                destinationPayload[j.dest] = [variant];
               }
             } if (!destinationPayload[j.dest]) {
               // if we could not get variantId then by default will send the first variant object of array
-              destinationPayload[j.dest] = payload[j.src][0];
+              destinationPayload[j.dest] = [payload[j.src][0]];
             }
           } else {
             destinationPayload[j.dest] = payload[j.src];
@@ -691,7 +691,8 @@ var rudderTracking = (function () {
     _getJsonData(url)
       .done(function (data) {
         console.log("[Product Clicked] data.product", data.product);
-        const payload = propertyMapping(data.product, productMapping);
+        const variantId = getCurrentVariantId();
+        const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
@@ -732,9 +733,9 @@ var rudderTracking = (function () {
       .done(function (data) {
         const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
-        payload.sku = String(payload.variant.sku || payload.product_id);
+        payload.sku = String(payload.variant[0].sku || payload.product_id);
         if (payload.variant && !payload.price) {
-          payload.price = payload.variant.price;
+          payload.price = payload.variant[0].price;
         }
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$('form[action="/cart/add"] [type="button"]').each((i, ele) => {
