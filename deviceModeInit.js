@@ -91,9 +91,32 @@ var rudderTracking = (function () {
         })
     });
   }
+
+  /* checking if user logged out after logging in once
+   when user logs in for first time we make the identify call and set `rudder_user_id`
+   cookie as `captured` and hence we are leveraging the same 
+  */
+  const checkIfUserLoggedOut = userId => {
+    if (!userId) {
+      const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
+      if (wasUserIdentifiedPreviously) {
+        rudderanalytics.reset(true);
+        anonymousIdChanged = true;
+        cookie_action({
+          action: "set",
+          name: "rudder_user_id",
+          value: "Not Captured"
+        });
+        return true;
+      }
+    }
+    return false;
+  }
   function init() {
     pageCurrency = Shopify.currency.active;
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+    const userLoggedOut = checkIfUserLoggedOut(userId);
+
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({
@@ -112,7 +135,7 @@ var rudderTracking = (function () {
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        if (needToUpdateCart) {
+        if (userLoggedOut || needToUpdateCart) {
           updateCartAttribute().then((cart) => {
             sendIdentifierToRudderWebhook(cart);
           });
