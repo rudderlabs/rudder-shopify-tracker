@@ -153,126 +153,7 @@ var rudderTracking = (function () {
         console.debug("Error occurred while updating cart:", error);
       });
     productListViews();
-
-    const productIsVisible = (window, element) => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const { top, bottom, left, right, height } =
-        element.getBoundingClientRect();
-
-      if (
-        top < viewportHeight &&
-        bottom > 0 &&
-        left < viewportWidth &&
-        right > 0
-      ) {
-        let pixelsVisible = height;
-
-        if (top < 0) {
-          pixelsVisible += top;
-        }
-        if (bottom > viewportHeight) {
-          pixelsVisible += viewportHeight - bottom;
-        }
-        const percentVisible = pixelsVisible / height;
-        if (percentVisible > 0.8) {
-          return true;
-        }
-      }
-      return false;
-    };
-    function getAllProductsOnPage() {
-      const allAnchorTags = document.getElementsByTagName("a");
-      const productUrlRegex = new RegExp(
-        `^(?!\/\/cdn)[-\.:\/,a-z,A-Z,0-9]*\/products\/`
-      );
-      const allAnchorTagsWithProducts = Array.prototype.slice
-        .call(allAnchorTags)
-        .filter((anchorTag) => {
-          return productUrlRegex.test(anchorTag.href);
-        });
-      let allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
-        (anchorTag) => {
-          anchorTag.querySelector("img");
-        }
-      );
-      if (allProductsOnPageWithImg.length === 0) {
-        allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
-          (anchorTag) => {
-            const parentNode = anchorTag.parentNode.parentNode.parentNode;
-            return (
-              parentNode.nextElementSibling?.querySelector("img") ||
-              parentNode.previousElementSibling?.querySelector("img")
-            );
-          }
-        );
-      }
-      return allProductsOnPageWithImg;
-    }
-    function callProductListViewedEvent(productsOnThePage, productConsidered) {
-      const elementsToSend = [];
-      const productsToSend = [];
-      productsOnThePage.forEach((element) => {
-        const isProductVisible = productIsVisible(window, element);
-        const isProductAlreadyConsidered = productConsidered.includes(
-          element.href
-        );
-        if (isProductVisible && !isProductAlreadyConsidered) {
-          elementsToSend.push(element);
-          productConsidered.push(element.href);
-        }
-      });
-      if (elementsToSend.length > 0) {
-        elementsToSend.forEach(async (product) => {
-          const handle = product.href.match(
-            /(\/products\/)((\w|-)*)(\?|\$?)/
-          )[2];
-          await rs$
-            .get(`/products/${handle}.json`, undefined, undefined, "JSON")
-            .then((data) => {
-              const products = [];
-              const rudderstackProduct = propertyMapping(
-                data.product,
-                productMapping
-              ); // here as well 
-              rudderstackProduct.currency = pageCurrency;
-              rudderstackProduct.sku = String(
-                rudderstackProduct.variant[0]?.sku ||
-                rudderstackProduct.product_id
-              );
-              rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
-
-              products.push(rudderstackProduct);
-              productsToSend.push(rudderstackProduct);
-            })
-            .catch((error) => {
-              console.debug("Rudderstack unable to fetch", handle, error);
-            });
-        });
-        window.setTimeout(() => {
-          if (productsToSend.length > 0) {
-            rudderanalytics.track("Product List Viewed", {
-              products: productsToSend,
-            });
-          }
-        }, 2500);
-      }
-    }
-    function productListViews() {
-      const productsOnThePage = getAllProductsOnPage();
-      const productConsidered = [];
-      let waitForScroll = window.setTimeout(() => {
-        callProductListViewedEvent(productsOnThePage, productConsidered);
-      }, 200);
-      document.addEventListener("scroll", () => {
-        //assumes that people need 200ms after scrolling stops to register an impression
-        clearTimeout(waitForScroll);
-
-        waitForScroll = window.setTimeout(() => {
-          callProductListViewedEvent(productsOnThePage, productConsidered);
-        }, 200);
-      });
-    }
+    productListPage();
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
         enableClientIdentifierEvents = true;
@@ -284,6 +165,7 @@ var rudderTracking = (function () {
 
     trackPageEvent();
     trackNamedPageView();
+    trackProductListPage();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
@@ -291,6 +173,126 @@ var rudderTracking = (function () {
     const timeForCookieUpdate = getTimeForCookieUpdate();
     setTimeout(sendRudderIdentifierPeriodically, timeForCookieUpdate);
   }
+  const productIsVisible = (window, element) => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const { top, bottom, left, right, height } =
+      element.getBoundingClientRect();
+
+    if (
+      top < viewportHeight &&
+      bottom > 0 &&
+      left < viewportWidth &&
+      right > 0
+    ) {
+      let pixelsVisible = height;
+
+      if (top < 0) {
+        pixelsVisible += top;
+      }
+      if (bottom > viewportHeight) {
+        pixelsVisible += viewportHeight - bottom;
+      }
+      const percentVisible = pixelsVisible / height;
+
+      if (percentVisible > 0.8) {
+        return true;
+      }
+    }
+    return false;
+  };
+  function getAllProductsOnPage() {
+    const allAnchorTags = document.getElementsByTagName("a");
+    const productUrlRegex = new RegExp(
+      `^(?!\/\/cdn)[-\.:\/,a-z,A-Z,0-9]*\/products\/`
+    );
+    const allAnchorTagsWithProducts = Array.prototype.slice
+      .call(allAnchorTags)
+      .filter((anchorTag) => {
+        return productUrlRegex.test(anchorTag.href);
+      });
+    let allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+      (anchorTag) => {
+        anchorTag.querySelector("img");
+      }
+    );
+    if (allProductsOnPageWithImg.length === 0) {
+      allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+        (anchorTag) => {
+          const parentNode = anchorTag.parentNode.parentNode.parentNode;
+          return (
+            parentNode.nextElementSibling?.querySelector("img") ||
+            parentNode.previousElementSibling?.querySelector("img")
+          );
+        }
+      );
+    }
+    return allProductsOnPageWithImg;
+  }
+  function callProductListViewedEvent(productsOnThePage, productConsidered) {
+    const elementsToSend = [];
+    const productsToSend = [];
+    productsOnThePage.forEach((element) => {
+      const isProductVisible = productIsVisible(window, element);
+      const isProductAlreadyConsidered = productConsidered.includes(
+        element.href
+      );
+      if (isProductVisible && !isProductAlreadyConsidered) {
+        elementsToSend.push(element);
+        productConsidered.push(element.href);
+      }
+    });
+    if (elementsToSend.length > 0) {
+      elementsToSend.forEach(async (product) => {
+        const handle = product.href.match(
+          /(\/products\/)((\w|-)*)(\?|\$?)/
+        )[2];
+        await rs$
+          .get(`/products/${handle}.json`, undefined, undefined, "JSON")
+          .then((data) => {
+            const products = [];
+            const rudderstackProduct = propertyMapping(
+              data.product,
+              productMapping
+            ); // here as well 
+            rudderstackProduct.currency = pageCurrency;
+            rudderstackProduct.sku = String(
+              rudderstackProduct.variant[0]?.sku ||
+              rudderstackProduct.product_id
+            );
+            rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
+            products.push(rudderstackProduct);
+            productsToSend.push(rudderstackProduct);
+          })
+          .catch((error) => {
+            console.debug("Rudderstack unable to fetch", handle, error);
+          });
+      });
+      window.setTimeout(() => {
+        if (productsToSend.length > 0) {
+          rudderanalytics.track("Product List Viewed", {
+            products: productsToSend,
+          });
+        }
+      }, 2500);
+    }
+  }
+  function productListViews() {
+    const productsOnThePage = getAllProductsOnPage();
+    const productConsidered = [];
+    let waitForScroll = window.setTimeout(() => {
+      callProductListViewedEvent(productsOnThePage, productConsidered);
+    }, 200);
+    document.addEventListener("scroll", () => {
+      //assumes that people need 200ms after scrolling stops to register an impression
+      clearTimeout(waitForScroll);
+
+      waitForScroll = window.setTimeout(() => {
+        callProductListViewedEvent(productsOnThePage, productConsidered);
+      }, 200);
+    });
+  }
+
   function identifyUser() {
     if (
       userId &&
@@ -435,6 +437,15 @@ var rudderTracking = (function () {
     }
   }
 
+  const trackProductListPage = () => {
+    const pagePathArr = window.location.pathname.split("/");
+    // If the url is = /products or /collections/{collectionId}
+    if (pagePathArr[pagePathArr.length - 2] == "collections") {
+      // To track product clicked Events
+      productListPage();
+    }
+  }
+
   function trackNamedPageView() {
     let name = "",
       mappedPageName = "";
@@ -445,10 +456,7 @@ var rudderTracking = (function () {
         break;
       }
     }
-
     switch (name) {
-      case "/products":
-      case "/collections/":
       case "/products/":
         trackProductPages(mappedPageName); // Ex: Product Viewed
         break;
@@ -512,16 +520,7 @@ var rudderTracking = (function () {
       console.info("RudderStack does not track this page");
     } else {
       const pagePathArr = pagePath.split("/");
-      // If the url is = /products or /collections/{collectionId}
-      if (
-        pagePathArr[pagePathArr.length - 1] == "products" ||
-        pagePathArr[pagePathArr.length - 2] == "collections"
-      ) {
-        // To track product clicked Events
-        productListPage();
-      }
-      // If the url is = /products/{productId}
-      else if (pagePathArr[pagePathArr.length - 2] == "products") {
+      if (pagePathArr[pagePathArr.length - 2] == "products") { // If the url is = /products/{productId} -> Product Page
         var alreadyViewedVariants = [];
         var replaceState = history.replaceState;
         history.replaceState = function () {
