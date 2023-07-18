@@ -279,18 +279,22 @@ var rudderTracking = (function () {
   }
   function productListViews() {
     const productsOnThePage = getAllProductsOnPage();
-    const productConsidered = [];
-    let waitForScroll = window.setTimeout(() => {
-      callProductListViewedEvent(productsOnThePage, productConsidered);
-    }, 200);
-    document.addEventListener("scroll", () => {
-      //assumes that people need 200ms after scrolling stops to register an impression
-      clearTimeout(waitForScroll);
-
-      waitForScroll = window.setTimeout(() => {
+    if (productsOnThePage.length > 0) {
+      const productConsidered = [];
+      let waitForScroll = window.setTimeout(() => {
         callProductListViewedEvent(productsOnThePage, productConsidered);
       }, 200);
-    });
+      document.addEventListener("scroll", () => {
+        //assumes that people need 200ms after scrolling stops to register an impression
+        clearTimeout(waitForScroll);
+
+        waitForScroll = window.setTimeout(() => {
+          callProductListViewedEvent(productsOnThePage, productConsidered);
+        }, 200);
+      });
+    } else {
+      oldProductListView("Product List Viewed");
+    }
   }
 
   function identifyUser() {
@@ -704,6 +708,40 @@ var rudderTracking = (function () {
       .fail(function (error) {
         console.log(error);
       });
+  }
+
+  /* We changed `Product List View Event` flow by fetching the image tags and adding listners to them but due to much manipulation in HTML CSS of Store its hard to generalize it. 
+  So this acts as a fallback so that nothing breaks. 
+  To be deprecated soon
+  */
+  const oldProductListView = event => {
+    let url = getUrl();
+    if (pageURL.indexOf("/collections/") > -1) {
+      const [referrer, all] = url.split("collections");
+      if (all.indexOf("all") > -1) {
+        url = `${referrer}products.json`;
+      }
+      _getJsonData(url)
+        .done(function (data) {
+          const payload = {
+            products: [],
+          };
+          if (data.products) {
+            data.products.forEach((product) => {
+              const p = propertyMapping(product, productMapping);
+              p.currency = pageCurrency;
+              p.sku = String(p.variant[0].sku || p.product_id);
+              p.price = p.variant[0].price;
+              payload.products.push(p);
+            });
+
+            rudderanalytics.track(event, payload);
+          }
+        })
+        .fail(function (error) {
+          console.log(error);
+        });
+    }
   }
 
   // mapping seems fine
