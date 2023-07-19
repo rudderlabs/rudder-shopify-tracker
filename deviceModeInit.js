@@ -293,7 +293,7 @@ var rudderTracking = (function () {
         }, 200);
       });
     } else {
-      oldProductListView("Product List Viewed");
+      handleProductListViewFallback("Product List Viewed");
     }
   }
 
@@ -714,7 +714,7 @@ var rudderTracking = (function () {
   So this acts as a fallback so that nothing breaks. 
   To be deprecated soon
   */
-  const oldProductListView = event => {
+  const handleProductListViewFallback = event => {
     let url = getUrl();
     if (pageURL.indexOf("/collections/") > -1) {
       const [referrer, all] = url.split("collections");
@@ -795,7 +795,7 @@ var rudderTracking = (function () {
         payload.currency = pageCurrency;
         payload.sku = String(payload.variant[0].sku || payload.product_id);
         if (payload.variant && !payload.price) {
-          payload.price = payload.variant.price;
+          payload.price = payload.variant[0].price;
         }
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$('form[action="/cart/add"] [type="button"]').each((i, ele) => {
