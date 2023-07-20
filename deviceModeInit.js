@@ -153,7 +153,6 @@ var rudderTracking = (function () {
         console.debug("Error occurred while updating cart:", error);
       });
     productListViews();
-    productListPage();
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
         enableClientIdentifierEvents = true;
