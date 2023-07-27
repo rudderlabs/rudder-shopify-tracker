@@ -8,6 +8,7 @@ var rudderTracking = (function () {
   const htmlSelector = {};
   const pageURL = window.location.href;
   let pageCurrency = "";
+  let pagePathArr = "";
   let userId;
   let enableClientIdentifierEvents;
 
@@ -101,7 +102,6 @@ var rudderTracking = (function () {
       const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
       if (wasUserIdentifiedPreviously) {
         rudderanalytics.reset(true);
-        anonymousIdChanged = true;
         cookie_action({
           action: "set",
           name: "rudder_user_id",
@@ -114,6 +114,7 @@ var rudderTracking = (function () {
   }
   function init() {
     pageCurrency = Shopify.currency.active;
+    pagePathArr = window.location.pathname.split("/");
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
     const userLoggedOut = checkIfUserLoggedOut(userId);
 
@@ -152,7 +153,6 @@ var rudderTracking = (function () {
       .catch((error) => {
         console.debug("Error occurred while updating cart:", error);
       });
-    productListViews();
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
         enableClientIdentifierEvents = true;
@@ -161,10 +161,11 @@ var rudderTracking = (function () {
         enableClientIdentifierEvents = false;
       }
     });
-
+    productListViews();
     trackPageEvent();
     trackNamedPageView();
     trackProductListPage();
+    productListPage();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
@@ -231,12 +232,14 @@ var rudderTracking = (function () {
   function callProductListViewedEvent(productsOnThePage, productConsidered) {
     const elementsToSend = [];
     const productsToSend = [];
+    let excludeCurrentPage = false;
+    if (pagePathArr[pagePathArr.length - 2] == "products") {
+      excludeCurrentPage = true;
+    }
     productsOnThePage.forEach((element) => {
       const isProductVisible = productIsVisible(window, element);
-      const isProductAlreadyConsidered = productConsidered.includes(
-        element.href
-      );
-      if (isProductVisible && !isProductAlreadyConsidered) {
+      const isProductAlreadyConsidered = productConsidered.includes(element.href);
+      if (isProductVisible && !isProductAlreadyConsidered && (!excludeCurrentPage || !element.href.includes(pageURL))) {
         elementsToSend.push(element);
         productConsidered.push(element.href);
       }
@@ -286,7 +289,6 @@ var rudderTracking = (function () {
       document.addEventListener("scroll", () => {
         //assumes that people need 200ms after scrolling stops to register an impression
         clearTimeout(waitForScroll);
-
         waitForScroll = window.setTimeout(() => {
           callProductListViewedEvent(productsOnThePage, productConsidered);
         }, 200);
@@ -441,11 +443,10 @@ var rudderTracking = (function () {
   }
 
   const trackProductListPage = () => {
-    const pagePathArr = window.location.pathname.split("/");
     // If the url is = /products or /collections/{collectionId}
     if (pagePathArr[pagePathArr.length - 2] == "collections") {
       // To track product clicked Events
-      productListPage();
+     
     }
   }
 
