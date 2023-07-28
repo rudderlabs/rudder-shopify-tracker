@@ -137,10 +137,12 @@ var rudderTracking = (function () {
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
         if (userLoggedOut || needToUpdateCart) {
-          updateCartAttribute().then((cart) => {
-            sendIdentifierToRudderWebhook(cart);
-          });
-          console.debug("Successfully updated cart");
+          sendIdentifierToRudderWebhook(cart);
+          updateCartAttribute().then(() => {
+            console.debug("Successfully updated cart");
+          }).catch((error) => {
+            console.debug("Error occurred while updating cart:", error);
+          });;
         }
         else {
           /* Used else condition as it was otherwise sending rudderIdentifier twice 
@@ -149,9 +151,6 @@ var rudderTracking = (function () {
           */
           checkAndSendRudderIdentifier();// sending rudderIdentifier periodically after this
         }
-      })
-      .catch((error) => {
-        console.debug("Error occurred while updating cart:", error);
       });
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
@@ -164,7 +163,6 @@ var rudderTracking = (function () {
     productListViews();
     trackPageEvent();
     trackNamedPageView();
-    trackProductListPage();
     productListPage();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
@@ -439,14 +437,6 @@ var rudderTracking = (function () {
         .val();
     if (query) {
       rudderanalytics.track("Products Searched", query);
-    }
-  }
-
-  const trackProductListPage = () => {
-    // If the url is = /products or /collections/{collectionId}
-    if (pagePathArr[pagePathArr.length - 2] == "collections") {
-      // To track product clicked Events
-     
     }
   }
 
