@@ -2,14 +2,13 @@ var rudderTracking = (function () {
   const pages = {
     "/products/": "Product Viewed",
     "/cart": "Cart Viewed",
-    "/collections/": "Product List Viewed",
     "/account/register": "Registration Viewed",
-    "/thank_you": "Checkout Step Completed",
     "/account/login": "Login Viewed",
   };
   const htmlSelector = {};
   const pageURL = window.location.href;
   let pageCurrency = "";
+  let pagePathArr = "";
   let userId;
   let enableClientIdentifierEvents;
 
@@ -87,16 +86,38 @@ var rudderTracking = (function () {
             }
           },
           error: function (xhr, status, error) {
-            console.log("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+            console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
             resolve(true);
           }
         })
     });
   }
 
+  /* checking if user logged out after logging in once
+   when user logs in for first time we make the identify call and set `rudder_user_id`
+   cookie as `captured` and hence we are leveraging the same 
+  */
+  const checkIfUserLoggedOut = userId => {
+    if (!userId) {
+      const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
+      if (wasUserIdentifiedPreviously) {
+        rudderanalytics.reset(true);
+        cookie_action({
+          action: "set",
+          name: "rudder_user_id",
+          value: "Not Captured"
+        });
+        return true;
+      }
+    }
+    return false;
+  }
   function init() {
     pageCurrency = Shopify.currency.active;
+    pagePathArr = window.location.pathname.split("/");
     userId = ShopifyAnalytics.meta.page.customerId || __st.cid;
+    const userLoggedOut = checkIfUserLoggedOut(userId);
+
     // fetching heap Cookie object
     // TODO: for adding dynamic support from source config
     heapCookieObject = cookie_action({
@@ -107,27 +128,24 @@ var rudderTracking = (function () {
     if (heapCookieObject) {
       heapCookieObject = JSON.parse(decodeURIComponent(heapCookieObject));
     } else {
-      console.log("No heap cookie found.");
+      console.debug("No heap cookie found.");
     }
-
-    htmlSelector.buttonAddToCart =
-      rs$('form[action="/cart/add"] [type="submit"]')
+    htmlSelector.buttonAddToCart = rs$('form[action="/cart/add"] [type="submit"]')
     fetchCart()
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        if (needToUpdateCart) {
+        if (userLoggedOut || needToUpdateCart) {
           updateCartAttribute().then((cart) => {
             sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
             sendSessionIdentifierToRudderWebhook(cart); // sending sessionIdentifier
+            console.log("Successfully updated cart");
+          }).catch((error) => {
+            console.debug("Error occurred while updating cart:", error);
           });
-          console.log("Successfully updated cart");
         } else {
           checkAndSendSessionRudderIdentifierPeriodically(cart);
           checkAndSendRudderIdentifier(cart);
         }
-      })
-      .catch((error) => {
-        console.log("Error occurred while updating cart:", error);
       });
     isClientSideIdentifierEventsEnabled().then(response => {
       if (!!response) {
@@ -137,15 +155,138 @@ var rudderTracking = (function () {
         enableClientIdentifierEvents = false;
       }
     });
+    productListViews();
     trackPageEvent();
     trackNamedPageView();
+    productListPage();
 
     rs$("button[data-search-form-submit]").on("click", trackProductSearch);
   }
+  const productIsVisible = (window, element) => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const { top, bottom, left, right, height } =
+      element.getBoundingClientRect();
 
-  // TODO: add support for product search
+    if (
+      top < viewportHeight &&
+      bottom > 0 &&
+      left < viewportWidth &&
+      right > 0
+    ) {
+      let pixelsVisible = height;
 
-  // Used to Identify user or fetch user details from cookie, if present
+      if (top < 0) {
+        pixelsVisible += top;
+      }
+      if (bottom > viewportHeight) {
+        pixelsVisible += viewportHeight - bottom;
+      }
+      const percentVisible = pixelsVisible / height;
+
+      if (percentVisible > 0.8) {
+        return true;
+      }
+    }
+    return false;
+  };
+  function getAllProductsOnPage() {
+    const allAnchorTags = document.getElementsByTagName("a");
+    const productUrlRegex = new RegExp(
+      `^(?!\/\/cdn)[-\.:\/,a-z,A-Z,0-9]*\/products\/`
+    );
+    const allAnchorTagsWithProducts = Array.prototype.slice
+      .call(allAnchorTags)
+      .filter((anchorTag) => {
+        return productUrlRegex.test(anchorTag.href);
+      });
+    let allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+      (anchorTag) => {
+        anchorTag.querySelector("img");
+      }
+    );
+    if (allProductsOnPageWithImg.length === 0) {
+      allProductsOnPageWithImg = allAnchorTagsWithProducts.filter(
+        (anchorTag) => {
+          const parentNode = anchorTag.parentNode.parentNode.parentNode;
+          return (
+            parentNode.nextElementSibling?.querySelector("img") ||
+            parentNode.previousElementSibling?.querySelector("img")
+          );
+        }
+      );
+    }
+    return allProductsOnPageWithImg;
+  }
+  function callProductListViewedEvent(productsOnThePage, productConsidered) {
+    const elementsToSend = [];
+    const productsToSend = [];
+    let excludeCurrentPage = false;
+    if (pagePathArr[pagePathArr.length - 2] == "products") {
+      excludeCurrentPage = true;
+    }
+    productsOnThePage.forEach((element) => {
+      const isProductVisible = productIsVisible(window, element);
+      const isProductAlreadyConsidered = productConsidered.includes(element.href);
+      if (isProductVisible && !isProductAlreadyConsidered && (!excludeCurrentPage || !element.href.includes(pageURL))) {
+        elementsToSend.push(element);
+        productConsidered.push(element.href);
+      }
+    });
+    if (elementsToSend.length > 0) {
+      elementsToSend.forEach(async (product) => {
+        const handle = product.href.match(
+          /(\/products\/)((\w|-)*)(\?|\$?)/
+        )[2];
+        await rs$
+          .get(`/products/${handle}.json`, undefined, undefined, "JSON")
+          .then((data) => {
+            const products = [];
+            const rudderstackProduct = propertyMapping(
+              data.product,
+              productMapping
+            ); // here as well
+            rudderstackProduct.currency = pageCurrency;
+            rudderstackProduct.sku = String(
+              rudderstackProduct.variant[0]?.sku ||
+              rudderstackProduct.product_id
+            );
+            rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
+            products.push(rudderstackProduct);
+            productsToSend.push(rudderstackProduct);
+          })
+          .catch((error) => {
+            console.debug("Rudderstack unable to fetch", handle, error);
+          });
+      });
+      window.setTimeout(() => {
+        if (productsToSend.length > 0) {
+          rudderanalytics.track("Product List Viewed", {
+            products: productsToSend,
+          });
+        }
+      }, 2500);
+    }
+  }
+  function productListViews() {
+    const productsOnThePage = getAllProductsOnPage();
+    if (productsOnThePage.length > 0) {
+      const productConsidered = [];
+      let waitForScroll = window.setTimeout(() => {
+        callProductListViewedEvent(productsOnThePage, productConsidered);
+      }, 200);
+      document.addEventListener("scroll", () => {
+        //assumes that people need 200ms after scrolling stops to register an impression
+        clearTimeout(waitForScroll);
+        waitForScroll = window.setTimeout(() => {
+          callProductListViewedEvent(productsOnThePage, productConsidered);
+        }, 200);
+      });
+    } else {
+      handleProductListViewFallback("Product List Viewed");
+    }
+  }
+
   function identifyUser() {
     if (
       userId &&
@@ -258,10 +399,9 @@ var rudderTracking = (function () {
     });
     return current_session_id != prev_rs_session_id
   }
-  function checkAndSendSessionRudderIdentifier(cart) {
+  function checkAndSendSessionRudderIdentifier() {
     const needToUpdateSessionCookie = checkSessionCookieNeedsToBeUpdated();
     if (needToUpdateSessionCookie) {
-
       updateCartAttribute().then((cart) => { // updating the sessionId in cart object
         sendSessionIdentifierToRudderWebhook(cart); // sending sessionIdentifier
       });
@@ -278,8 +418,8 @@ var rudderTracking = (function () {
   }
   function checkAndSendSessionRudderIdentifierPeriodically(cart) {
     const pollTimeToCheckAndSendSessionIdentifier = "sessionIdentifierPollTime_placeHolder";
-    checkAndSendSessionRudderIdentifier(cart);
-    setInterval(() => { checkAndSendSessionRudderIdentifier(cart) }, pollTimeToCheckAndSendSessionIdentifier)
+    checkAndSendSessionRudderIdentifier();
+    setInterval(() => { checkAndSendSessionRudderIdentifier() }, pollTimeToCheckAndSendSessionIdentifier)
   }
 
   // functions for sending anonymousId Identifier
@@ -313,6 +453,7 @@ var rudderTracking = (function () {
     const timeToUpdate = thresholdTime - (currentTime - last_updated_at);
     return timeToUpdate
   }
+
   function updateTimeStampForIdentifierEvent() {
     const cookieOptions = {
       action: "set",
@@ -356,12 +497,9 @@ var rudderTracking = (function () {
         break;
       }
     }
-
     switch (name) {
-      case "/products":
-      case "/collections/":
       case "/products/":
-        trackProductPages(mappedPageName);
+        trackProductPages(mappedPageName); // Ex: Product Viewed
         break;
 
       case "/cart":
@@ -369,11 +507,11 @@ var rudderTracking = (function () {
         break;
 
       default:
-        console.log("RudderStack does not track this page");
+        console.info("RudderStack does not track this page");
     }
   }
 
-  function propertyMapping(payload, mappingJsonObject) {
+  function propertyMapping(payload, mappingJsonObject, variantId = null) {
     const destinationPayload = {};
     mappingJsonObject.forEach((j) => {
       if (j.src.indexOf(".") > -1) {
@@ -391,7 +529,21 @@ var rudderTracking = (function () {
         }
       } else {
         if (payload[j.src]) {
-          destinationPayload[j.dest] = payload[j.src];
+          // If there are many variants for a product then we will be sending data for the one currently visible 
+          if (j.src === "variants" && Array.isArray(payload[j.src])) {
+            if (variantId || variantId != null) {
+              const variant = payload[j.src].find(i => String(i.id) === variantId);
+              if (variant) {
+                destinationPayload[j.dest] = [variant];
+              }
+            } if (!destinationPayload[j.dest]) {
+              // if we could not get variantId then by default will send the first variant object of array
+              destinationPayload[j.dest] = [payload[j.src][0]];
+
+            }
+          } else {
+            destinationPayload[j.dest] = payload[j.src];
+          }
           delete payload[j.src];
         }
       }
@@ -406,19 +558,22 @@ var rudderTracking = (function () {
   function trackProductPages(mappedPageName) {
     const pagePath = window.location.pathname;
     if (pagePath === "/collections" || pagePath === "/products") {
-      console.log("RudderStack does not track this page");
+      console.info("RudderStack does not track this page");
     } else {
       const pagePathArr = pagePath.split("/");
-      // If the url is = /products or /collections/{collectionId}
-      if (
-        pagePathArr[pagePathArr.length - 1] == "products" ||
-        pagePathArr[pagePathArr.length - 2] == "collections"
-      ) {
-        productListPage(mappedPageName);
-      }
-      // If the url is = /products/{productId}
-      else if (pagePathArr[pagePathArr.length - 2] == "products") {
-        productPage(mappedPageName);
+      if (pagePathArr[pagePathArr.length - 2] == "products") { // If the url is = /products/{productId} -> Product Page
+        var alreadyViewedVariants = [];
+        var replaceState = history.replaceState;
+        history.replaceState = function () {
+          replaceState.apply(history, arguments);
+          const currentVariant = getCurrentVariantId();
+          if (currentVariant != null && !alreadyViewedVariants.includes(currentVariant)) {
+            alreadyViewedVariants.push(currentVariant);
+            productPage(mappedPageName, currentVariant);
+          }
+        };
+        const variantId = getCurrentVariantId();
+        productPage(mappedPageName, variantId);
       }
     }
   }
@@ -558,7 +713,7 @@ var rudderTracking = (function () {
     const url = getUrl();
     _getJsonData(url)
       .done(function (data) {
-        console.log(data);
+        console.debug(data);
         const { items } = data;
         const { currency } = data;
         const payload = {
@@ -592,34 +747,38 @@ var rudderTracking = (function () {
       });
   }
 
-  /**
-   * Checks whether the url for the product contains the variant id
-   * @returns {string} variant id or null
-   */
-  function findVariantIdInURL() {
-    const matches = window.location.href.match(/\d{8,20}/);
-    if (matches) {
-      return matches[0]
-    }
-    return null;
-  };
-
-  /**
-   * Returns the sku value for the variant matching the id in url 
-   * @param {*} payload product payload generated using product mapping
-   * @returns {string} matching variant's sku or undefined
-   */
-  function getVariantSku(payload) {
-    const variantId = findVariantIdInURL();
-    const variant = payload.variant;
-    if (variantId) {
-      for (let i = 0; i < variant.length; i++) {
-        if (String(variant[i].id) === variantId) {
-          return variant[i].sku;
-        }
+  /* We changed `Product List View Event` flow by fetching the image tags and adding listners to them but due to much manipulation in HTML CSS of Store its hard to generalize it. 
+  So this acts as a fallback so that nothing breaks. 
+  To be deprecated soon
+  */
+  const handleProductListViewFallback = event => {
+    let url = getUrl();
+    if (pageURL.indexOf("/collections/") > -1) {
+      const [referrer, all] = url.split("collections");
+      if (all.indexOf("all") > -1) {
+        url = `${referrer}products.json`;
       }
+      _getJsonData(url)
+        .done(function (data) {
+          const payload = {
+            products: [],
+          };
+          if (data.products) {
+            data.products.forEach((product) => {
+              const p = propertyMapping(product, productMapping);
+              p.currency = pageCurrency;
+              p.sku = String(p.variant[0].sku || p.product_id);
+              p.price = p.variant[0].price;
+              payload.products.push(p);
+            });
+
+            rudderanalytics.track(event, payload);
+          }
+        })
+        .fail(function (error) {
+          console.log(error);
+        });
     }
-    return undefined;
   }
 
   // mapping seems fine
@@ -629,11 +788,9 @@ var rudderTracking = (function () {
     _getJsonData(url)
       .done(function (data) {
         console.log("[Product Clicked] data.product", data.product);
-        const payload = propertyMapping(data.product, productMapping);
+        const variantId = getCurrentVariantId();
+        const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
-        // payload.sku = payload.variant
-        //   .map((item) => item.sku)
-        //   .reduce((prev, next) => prev + next);
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$("a")
@@ -644,58 +801,39 @@ var rudderTracking = (function () {
         rudderanalytics.track("Product Clicked", payload);
       })
       .fail(function (error) {
-        console.log(error);
+        console.debug(error);
       });
   }
-
-  // mapping seems fine
-  function productListPage(event) {
+  function getCurrentVariantId() {
+    const parameters = window.location.search;
+    let params = new URLSearchParams(parameters);
+    const variantId = params.get("variant")
+    if (variantId) {
+      return variantId;
+    }
+    return null;
+  }
+  // Adding listners on products for Product Clicked Events
+  function productListPage() {
     rs$("a")
       .filter((a, b) => b.href.indexOf("/products") > -1)
       .each((a, b) => {
         rs$(b).on("click", handleProductClicked);
       });
-    let url = getUrl();
-    const [referrer, all] = url.split("collections");
-    if (all.indexOf("all") > -1) {
-      url = `${referrer}products.json`;
-    }
-    _getJsonData(url)
-      .done(function (data) {
-        const payload = {
-          products: [],
-        };
-        if (data.products) {
-          data.products.forEach((product) => {
-            const p = propertyMapping(product, productMapping);
-            p.currency = pageCurrency;
-            p.sku = String(p.variant[0].sku || p.product_id);
-            p.price = p.variant[0].price;
-            payload.products.push(p);
-          });
-
-          rudderanalytics.track(event, payload);
-        }
-      })
-      .fail(function (error) {
-        console.log(error);
-      });
   }
 
-  function productPage(event, url = null) {
+  function productPage(event, variantId, url = null) {
     if (url === null) {
       url = getUrl();
     }
     _getJsonData(url)
       .done(function (data) {
-        const payload = propertyMapping(data.product, productMapping);
+        const payload = propertyMapping(data.product, productMapping, variantId);
         payload.currency = pageCurrency;
-        payload.sku = String(getVariantSku(payload) || payload.variant[0].sku || payload.product_id);
-        // we set root-level price property to be equal to first variant's price, if it is not available
+        payload.sku = String(payload.variant[0].sku || payload.product_id);
         if (payload.variant && !payload.price) {
           payload.price = payload.variant[0].price;
         }
-
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
         rs$('form[action="/cart/add"] [type="button"]').each((i, ele) => {
           const val = rs$(ele).html().toLowerCase();
@@ -706,7 +844,7 @@ var rudderTracking = (function () {
         rudderanalytics.track(event, payload);
       })
       .fail(function (error) {
-        console.log(error);
+        console.debug(error);
       });
   }
 
