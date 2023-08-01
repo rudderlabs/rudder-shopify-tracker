@@ -137,7 +137,7 @@ var rudderTracking = (function () {
       .then((cart) => {
         const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
         if (userLoggedOut || needToUpdateCart) {
-          updateCartAttribute().then(() => {
+          updateCartAttribute().then((cart) => {
             sendIdentifierToRudderWebhook(cart);
             console.debug("Successfully updated cart");
           }).catch((error) => {
