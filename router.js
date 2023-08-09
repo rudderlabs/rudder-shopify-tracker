@@ -45,6 +45,8 @@ router.get("/load", async (ctx) => {
   d = d.replace("dataPlaneUrl", dataPlaneUrl);
   d = d.replace("configBackendUrl", configUrl);
 
+  const pollTimeForSessionIdentifierCheck = process.env?.pollTimeForSessionIdentifierCheck || 5 * 60 * 1000; // default 5 mins
+  deviceModeInit = deviceModeInit.replace(/sessionIdentifierPollTime_placeHolder/g, pollTimeForSessionIdentifierCheck);
   deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, dataPlaneUrl);
   deviceModeInit = deviceModeInit.replace(/writeKey_placeHolder/g, writeKey);
   deviceModeInit = deviceModeInit.replace(/configUrl_placeholder/g, configUrl);
