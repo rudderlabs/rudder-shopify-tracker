@@ -139,11 +139,13 @@ var rudderTracking = (function () {
             sendIdentifierToRudderWebhook(cart); // sending rudderIdentifier periodically after this
             sendSessionIdentifierToRudderWebhook(cart); // sending sessionIdentifier
             console.log("Successfully updated cart");
+            checkAndSendSessionRudderIdentifierPeriodically();
+            checkAndSendRudderIdentifier(cart, delay = 10000);
           }).catch((error) => {
             console.debug("Error occurred while updating cart:", error);
           });
         } else {
-          checkAndSendSessionRudderIdentifierPeriodically(cart);
+          checkAndSendSessionRudderIdentifierPeriodically(true);
           checkAndSendRudderIdentifier(cart);
         }
       });
@@ -416,16 +418,20 @@ var rudderTracking = (function () {
     }
     cookie_action(cookieOptions);
   }
-  function checkAndSendSessionRudderIdentifierPeriodically(cart) {
+  function checkAndSendSessionRudderIdentifierPeriodically(checkNow = false) {
     const pollTimeToCheckAndSendSessionIdentifier = "sessionIdentifierPollTime_placeHolder";
-    checkAndSendSessionRudderIdentifier();
+    if (checkNow) {
+      checkAndSendSessionRudderIdentifier();
+    }
     setInterval(() => { checkAndSendSessionRudderIdentifier() }, pollTimeToCheckAndSendSessionIdentifier)
   }
 
   // functions for sending anonymousId Identifier
-  function checkAndSendRudderIdentifier(cart) {
-    const timeForCookieUpdate = getTimeForCookieUpdate();
-    setTimeout(() => { sendRudderIdentifierPeriodically(cart) }, timeForCookieUpdate);
+  function checkAndSendRudderIdentifier(cart, delay = 0) {
+    setTimeout(() => {
+      const timeForCookieUpdate = getTimeForCookieUpdate();
+      setTimeout(() => { sendRudderIdentifierPeriodically(cart) }, timeForCookieUpdate);
+    }, delay)
   }
   function sendRudderIdentifierPeriodically(cart) {
     sendIdentifierToRudderWebhook(cart);
