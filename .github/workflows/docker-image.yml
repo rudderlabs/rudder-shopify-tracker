@@ -1,22 +1,40 @@
 name: Docker Image CI for shopify-tracker
-
 on:
   push:
     branches: [ master ]
 
-jobs:
+permissions: read-all
 
+jobs:
   build:
+    name: Test and build image
     runs-on: ubuntu-latest
+    timeout-minutes: 28
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Login to Dockerhub
-        run: docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password '${{ secrets.DOCKERHUB_PASSWORD }}'
-      - name: Set timestamped version
-        id: vars
-        run: echo ::set-output name=tag::$(echo $(date '+%d%m%Y.%H%M%S'))
-      - name: Build the Docker image
-        run: docker build -f Dockerfile -t rudderstack/rudder-shopify-tracker:${{steps.vars.outputs.tag}} .
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Get image version
+        id: get-version
+        run: |
+          VERSION=$(echo ${{ github.event.pull_request.head.ref }} | tr "/" .)
+          echo $VERSION          
+          echo "::set-output name=version::$VERSION"
+
+     
+      - name: Build the Docker image and push
+        run: |
+          docker build -f Dockerfile -t rudderstack/rudder-shopify-tracker:${{steps.get-version.outputs.version}} .
       - name: Push the image to Dockerhub
-        run: docker push rudderstack/rudder-shopify-tracker:${{steps.vars.outputs.tag}}
+        run: |
+          docker push rudderstack/rudder-shopify-tracker:${{steps.get-version.outputs.version}}
