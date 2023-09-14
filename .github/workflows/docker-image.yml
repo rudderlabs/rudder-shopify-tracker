@@ -27,7 +27,7 @@ jobs:
       - name: Get image version
         id: get-version
         run: |
-          VERSION=$(echo ${{ github.event.pull_request.head.ref }} | tr "/" .)
+          VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/^release\///;s/^hotfix-release\///')
           echo $VERSION          
           echo "::set-output name=version::$VERSION"
 
