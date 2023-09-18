@@ -4,7 +4,9 @@
   "description": "Tracks client-side events on Shopify stores",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node main.js",
+    "release": "npx standard-version",
+    "release:github": "DEBUG=conventional-github-releaser npx conventional-github-releaser -p angular --config github-release.config.js"
   },
   "keywords": [],
   "author": "",

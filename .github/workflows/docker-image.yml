@@ -9,7 +9,6 @@ jobs:
   build:
     name: Test and build image
     runs-on: ubuntu-latest
-    timeout-minutes: 28
 
     steps:
       - name: Checkout
