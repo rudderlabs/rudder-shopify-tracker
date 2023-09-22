@@ -41,5 +41,5 @@ jobs:
           date: '3 months ago'
           dry_run: false
           delete_tags: false
-          extra_protected_branch_regex: ^(master|release/.*|develop|hotfix/.*|hotfix-release/.*)$
+          extra_protected_branch_regex: ^(main|release/.*|develop|hotfix/.*|hotfix-release/.*)$
           exclude_open_pr_branches: true
