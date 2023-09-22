@@ -5,7 +5,7 @@ on:
     types:
       - closed
     branches:
-      - master
+      - main
 
 jobs:
   release:
@@ -64,7 +64,7 @@ jobs:
       - name: Pull Changes Into develop Branch
         uses: repo-sync/pull-request@v2.12.1
         with:
-          source_branch: 'master'
+          source_branch: 'main'
           destination_branch: 'develop'
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pr_title: 'chore(release): pull main into develop post release v${{ steps.extract-version.outputs.release_version }}'
