@@ -33,14 +33,12 @@ jobs:
           echo "Version: $VERSION"        
           echo "::set-output name=version::$VERSION"
 
-      - name: Build and push
-        if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
-        uses: docker/build-push-action@v5
+      - name: Build Shopify Tracker Docker Image
+        # Only merged pull requests must trigger
+        if: github.event.pull_request.merged == true
+        uses: ./.github/workflows/build-push-docker-image.yml
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: rudderstack/rudder-shopify-tracker:${{steps.get-version.outputs.version}}
+          img_tag: rudder-shopify-tracker:${{steps.get-version.outputs.version}}
 
       - name: Extract branch name
         id: extract_branch_name
