@@ -45,7 +45,6 @@ jobs:
       - name: Extract branch name
         id: extract_branch_name
         run: |
-          cd rudder-devops
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           echo "branch_name=$branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
