@@ -37,7 +37,7 @@ jobs:
     needs: [extract-version]
     uses: ./.github/workflows/build-and-push-docker-image.yml
     with:
-      img_tag: rudder-shopify-tracker:${{ needs.extract-version.outputs.version }}
+      img_tag: ${{ needs.extract-version.outputs.version }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
