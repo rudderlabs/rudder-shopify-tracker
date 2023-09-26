@@ -1,0 +1,73 @@
+name: Docker Image CI for shopify-tracker
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions: read-all
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Get image version
+        id: get-version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "Version: $VERSION"        
+          echo "::set-output name=version::$VERSION"
+
+      - name: Build Shopify Tracker Docker Image
+        # Only merged pull requests must trigger
+        if: github.event.pull_request.merged == true
+        uses: ./.github/workflows/build-and-push-docker-image.yml
+        with:
+          img_tag: rudder-shopify-tracker:${{steps.get-version.outputs.version}}
+
+      - name: Extract branch name
+        id: extract_branch_name
+        run: |
+          branch_name=$(git rev-parse --abbrev-ref HEAD)
+          echo "branch_name=$branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+
+      - name: Initialize Mandatory Git Config
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "noreply@github.com"
+        
+      - name: Clone Devops Repo
+        run: |
+          git clone https://${{secrets.PAT}}@github.com/rudderlabs/rudder-devops.git
+
+      - name: Update Helm Chart and Raise Pull Request For Shopify Tracker
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
+          VERSION: ${{steps.get-version.outputs.version}}
+        run: |
+          cd rudder-devops
+          git checkout -b shopify-tracker-$VERSION ${{steps.extract_branch_name.outputs.branch_name}}
+          cd helm-charts/helm/shopify-tracking
+          yq eval -i ".image.tag=\"$VERSION\"" values.yaml
+          yq eval -i ".image.repository=\"$SP_IMAGE_REPOSITORY\"" values.yaml
+          git add values.yaml
+          git commit -m "chore: upgrade shopify tracker to $VERSION"
+          git push -u origin shopify-tracker-$VERSION
+          hub pull-request -m "chore: upgrade shopify tracker to $VERSION"  
