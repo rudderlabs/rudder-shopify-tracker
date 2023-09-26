@@ -13,6 +13,7 @@ permissions: read-all
 jobs:
   build:
     name: Deploy Shopify Tracker Image on production
+    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
 
     steps:
@@ -34,8 +35,6 @@ jobs:
           echo "::set-output name=version::$VERSION"
 
       - name: Build Shopify Tracker Docker Image
-        # Only merged pull requests must trigger
-        if: github.event.pull_request.merged == true
         uses: ./.github/workflows/build-and-push-docker-image.yml
         with:
           img_tag: rudder-shopify-tracker:${{steps.get-version.outputs.version}}
