@@ -25,12 +25,12 @@ jobs:
           echo "release_version=$version" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v3.5.0
+        uses: actions/checkout@v4.1.0
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v3.8.1
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -88,7 +88,7 @@ jobs:
 
       - name: Notify Slack Channel
         id: slack
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v1.24.0
         continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
