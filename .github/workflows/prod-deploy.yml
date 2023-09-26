@@ -38,6 +38,9 @@ jobs:
     uses: ./.github/workflows/build-and-push-docker-image.yml
     with:
       img_tag: rudder-shopify-tracker:${{ needs.extract-version.outputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
   
   create-pull-request:
     name: Create Pull Request for Shopify Tracker Helm Chart
@@ -45,6 +48,7 @@ jobs:
     needs: [extract-version, build]
     env:
       TAG_NAME: ${{ needs.extract-version.outputs.version }}
+
 
     steps:
       - name: Initialize Mandatory Git Config
