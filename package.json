@@ -4,18 +4,35 @@
   "description": "Tracks client-side events on Shopify stores",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node main.js",
+    "release": "npx standard-version",
+    "release:github": "DEBUG=conventional-github-releaser npx conventional-github-releaser -p angular --config github-release.config.js",
+    "pre-commit": "npx lint-staged",
+    "commit-msg": "commitlint --edit"
+  },
+  "lint-staged": {
+    "*.{js,ts}": "eslint --cache --fix",
+    "*.{json,js,ts,md}": "prettier --write"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.24.0",
+    "commitlint": "^17.7.1",
+    "conventional-github-releaser": "^3.1.5",
     "dotenv": "^15.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-json": "^3.1.0",
+    "husky": "^8.0.3",
     "koa": "^2.13.4",
-    "koa-router": "^10.1.1"
+    "koa-router": "^10.1.1",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.3",
+    "standard-version": "^9.5.0"
   },
   "devDependencies": {
+    "eslint": "^8.49.0",
     "nodemon": "^2.0.15"
   }
 }
