@@ -12,7 +12,7 @@ permissions: read-all
 
 jobs:
   build:
-    name: Test and build image
+    name: Build image
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Build Shopify Tracker Docker Image
         # Only merged pull requests must trigger
         if: github.event.pull_request.merged == true
-        uses: ./.github/workflows/build-push-docker-image.yml
+        uses: ./.github/workflows/build-and-push-docker-image.yml
         with:
           img_tag: rudder-shopify-tracker:${{steps.get-version.outputs.version}}
 
