@@ -28,6 +28,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: Dockerfile
           push: true
           tags: rudderstack/rudder-shopify-tracker:${{ inputs.img_tag }}
