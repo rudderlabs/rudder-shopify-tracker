@@ -41,14 +41,13 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-  
+
   create-pull-request:
     name: Create Pull Request for Shopify Tracker Helm Chart
     runs-on: ubuntu-latest
     needs: [extract-version, build]
     env:
       TAG_NAME: ${{ needs.extract-version.outputs.version }}
-
 
     steps:
       - name: Initialize Mandatory Git Config
