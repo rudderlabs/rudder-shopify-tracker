@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-transformer-image-arm64:
-    name: Build Shopify Tracker Docker Image 
+    name: Build Shopify Tracker Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
