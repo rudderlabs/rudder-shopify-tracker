@@ -1,6 +1,6 @@
 {
   "name": "rudderstack-shopify-tracker",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Tracks client-side events on Shopify stores",
   "main": "main.js",
   "scripts": {
