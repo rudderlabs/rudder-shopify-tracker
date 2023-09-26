@@ -11,33 +11,46 @@ on:
 permissions: read-all
 
 jobs:
-  build:
-    name: Deploy Shopify Tracker Image on production
-    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
+  extract-version:
+    name: Extract Version
     runs-on: ubuntu-latest
+    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: actions/checkout@v3.5.3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          fetch-depth: 1
 
       - name: Get image version
         id: get-version
         run: |
-          VERSION=$(jq -r .version package.json)
-          echo "Version: $VERSION"        
-          echo "::set-output name=version::$VERSION"
+          version=$(jq -r .version package.json)
+          echo "Version: $version"        
+          echo "version=$version" >> $GITHUB_OUTPUT
 
+  build:
+    name: Deploy Shopify Tracker Image on production
+    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    needs: [extract-version]
+
+    steps:
       - name: Build Shopify Tracker Docker Image
         uses: ./.github/workflows/build-and-push-docker-image.yml
         with:
-          img_tag: rudder-shopify-tracker:${{steps.get-version.outputs.version}}
+          img_tag: rudder-shopify-tracker:${{ needs.extract-version.outputs.version }}
+  
+  create-pull-request:
+    name: Create Pull Request for Shopify Tracker Helm Chart
+    runs-on: ubuntu-latest
+    needs: [extract-version, build]
+    env:
+      TAG_NAME: ${{ needs.extract-version.outputs.version }}
 
+    steps:
       - name: Initialize Mandatory Git Config
         run: |
           git config --global user.name "GitHub Actions"
@@ -59,14 +72,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
-          VERSION: ${{steps.get-version.outputs.version}}
         run: |
           cd rudder-devops
-          git checkout -b shopify-tracker-$VERSION ${{steps.extract_branch_name.outputs.branch_name}}
+          git checkout -b shopify-tracker-$TAG_NAME ${{steps.extract_branch_name.outputs.branch_name}}
           cd helm-charts/helm/shopify-tracking
-          yq eval -i ".image.tag=\"$VERSION\"" values.yaml
+          yq eval -i ".image.tag=\"$TAG_NAME\"" values.yaml
           yq eval -i ".image.repository=\"$SP_IMAGE_REPOSITORY\"" values.yaml
           git add values.yaml
-          git commit -m "chore: upgrade shopify tracker to $VERSION"
-          git push -u origin shopify-tracker-$VERSION
-          hub pull-request -m "chore: upgrade shopify tracker to $VERSION"
+          git commit -m "chore: upgrade shopify tracker to $TAG_NAME"
+          git push -u origin shopify-tracker-$TAG_NAME
+          hub pull-request -m "chore: upgrade shopify tracker to $TAG_NAME"
