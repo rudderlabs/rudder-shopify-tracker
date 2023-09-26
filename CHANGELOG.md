@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.2.0...v1.2.1) (2023-09-26)
+
+
+### Bug Fixes
+
+* prod deploy chronology ([#55](https://github.com/rudderlabs/rudder-shopify-tracker/issues/55)) ([894f038](https://github.com/rudderlabs/rudder-shopify-tracker/commit/894f038043addca9d7dd3e5f6f1ea1f9bb0d2336))
+
 ## 1.2.0 (2023-09-26)
 
 
