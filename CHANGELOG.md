@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.7](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.4.6...v1.4.7) (2023-10-04)
+
+
+### Bug Fixes
+
+* Dockerfile to reduce vulnerabilities ([#42](https://github.com/rudderlabs/rudder-shopify-tracker/issues/42)) ([d782819](https://github.com/rudderlabs/rudder-shopify-tracker/commit/d7828193f4af4fcafefb96f553c6e52e80e86528))
+
 ### [1.4.6](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.4.5...v1.4.6) (2023-09-26)
 
 
