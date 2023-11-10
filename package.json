@@ -21,22 +21,15 @@
     "axios": "^0.24.0",
     "commitlint": "^17.7.1",
     "conventional-github-releaser": "^3.1.5",
-    "dot-prop": "^8.0.2",
     "dotenv": "^15.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-json": "^3.1.0",
-    "follow-redirects": "^1.15.3",
-    "got": "^13.0.0",
-    "http-cache-semantics": "^4.1.1",
     "husky": "^8.0.3",
     "koa": "^2.13.4",
     "koa-router": "^10.1.1",
     "lint-staged": "^14.0.1",
     "prettier": "^3.0.3",
-    "semver": "^7.5.4",
-    "semver-regex": "^4.0.5",
-    "standard-version": "^9.5.0",
-    "trim-newlines": "^5.0.0"
+    "standard-version": "^9.5.0"
   },
   "devDependencies": {
     "eslint": "^8.49.0",
