@@ -11,6 +11,7 @@ var rudderTracking = (function () {
   let pagePathArr = "";
   let userId;
   let enableClientIdentifierEvents;
+  let version = "v0";
 
   const cartItemMapping = [
     { dest: "product_id", src: "product_id" },
@@ -64,7 +65,7 @@ var rudderTracking = (function () {
   /**
   * This function checks if Customer wants us to send Identify Event
   */
-  function isClientSideIdentifierEventsEnabled() {
+  function getSourceConfig() {
     const authKey = btoa("writeKey_placeHolder" + ":");
     const webhookUrl = "configUrl_placeholder/sourceConfig";
     return new Promise(function (resolve, reject) {
@@ -79,15 +80,11 @@ var rudderTracking = (function () {
             xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
           },
           success: function (response) {
-            if (response.source?.config?.disableClientSideIdentifier === true) {
-              resolve(false)
-            } else {
-              resolve(true);
-            }
+            resolve(response);
           },
           error: function (xhr, status, error) {
             console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
-            resolve(true);
+            resolve({});
           }
         })
     });
@@ -152,14 +149,16 @@ var rudderTracking = (function () {
           checkAndSendRudderIdentifier();// sending rudderIdentifier periodically after this
         }
       });
-    isClientSideIdentifierEventsEnabled().then(response => {
-      if (!!response) {
+    getSourceConfig().then(response => {
+      if (response.source?.config?.disableClientSideIdentifier === true) {
+        enableClientIdentifierEvents = false;
+      } else {
         enableClientIdentifierEvents = true;
         identifyUser();
-      } else {
-        enableClientIdentifierEvents = false;
       }
-    });
+      version = response.source?.config?.version || "v0";
+    })
+
     productListViews();
     trackPageEvent();
     trackNamedPageView();
@@ -803,7 +802,9 @@ var rudderTracking = (function () {
 
   // mapping seems fine
   function addToCart() {
-    rudderanalytics.track("Product Added", this);
+    if (version === "v0") {
+      rudderanalytics.track("Product Added", this);
+    }
   }
 
   // triggered on clicking buy now
