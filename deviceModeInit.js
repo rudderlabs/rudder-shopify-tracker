@@ -63,30 +63,32 @@ var rudderTracking = (function () {
     { dest: "url", src: "url" },
   ];
   /**
-  * This function checks if Customer wants us to send Identify Event
-  */
+   * This function checks if Customer wants us to send Identify Event
+   */
   function getSourceConfig() {
     const authKey = btoa("writeKey_placeHolder" + ":");
     const webhookUrl = "configUrl_placeholder/sourceConfig";
     return new Promise(function (resolve, reject) {
-      rs$
-        .ajax({
-          url: webhookUrl,
-          method: "GET",
-          contentType: "application/json",
-          timeout: 2000, // 2 seconds timeout
-          beforeSend: function (xhr) {
-            // Set the Authorization header
-            xhr.setRequestHeader('Authorization', 'Basic ' + authKey);
-          },
-          success: function (response) {
-            resolve(response);
-          },
-          error: function (xhr, status, error) {
-            console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
-            resolve({});
-          }
-        })
+      rs$.ajax({
+        url: webhookUrl,
+        method: "GET",
+        contentType: "application/json",
+        timeout: 2000, // 2 seconds timeout
+        beforeSend: function (xhr) {
+          // Set the Authorization header
+          xhr.setRequestHeader("Authorization", "Basic " + authKey);
+        },
+        success: function (response) {
+          resolve(response);
+        },
+        error: function (xhr, status, error) {
+          console.debug(
+            "Couldn't fetch Source Config due error: " +
+              xhr.responseJSON.message
+          );
+          resolve({});
+        },
+      });
     });
   }
 
@@ -94,21 +96,22 @@ var rudderTracking = (function () {
    when user logs in for first time we make the identify call and set `rudder_user_id`
    cookie as `captured` and hence we are leveraging the same 
   */
-  const checkIfUserLoggedOut = userId => {
+  const checkIfUserLoggedOut = (userId) => {
     if (!userId) {
-      const wasUserIdentifiedPreviously = cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
+      const wasUserIdentifiedPreviously =
+        cookie_action({ action: "get", name: "rudder_user_id" }) === "captured";
       if (wasUserIdentifiedPreviously) {
         rudderanalytics.reset(true);
         cookie_action({
           action: "set",
           name: "rudder_user_id",
-          value: "Not Captured"
+          value: "Not Captured",
         });
         return true;
       }
     }
     return false;
-  }
+  };
   function init() {
     pageCurrency = Shopify.currency.active;
     pagePathArr = window.location.pathname.split("/");
@@ -128,36 +131,37 @@ var rudderTracking = (function () {
       console.debug("No heap cookie found.");
     }
 
-    htmlSelector.buttonAddToCart =
-      rs$('form[action="/cart/add"] [type="submit"]')
-    fetchCart()
-      .then((cart) => {
-        const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
-        if (userLoggedOut || needToUpdateCart) {
-          updateCartAttribute().then((cart) => {
+    htmlSelector.buttonAddToCart = rs$(
+      'form[action="/cart/add"] [type="submit"]'
+    );
+    fetchCart().then((cart) => {
+      const needToUpdateCart = checkCartNeedsToBeUpdated(cart);
+      if (userLoggedOut || needToUpdateCart) {
+        updateCartAttribute()
+          .then((cart) => {
             sendIdentifierToRudderWebhook(cart);
             console.debug("Successfully updated cart");
-          }).catch((error) => {
+          })
+          .catch((error) => {
             console.debug("Error occurred while updating cart:", error);
-          });;
-        }
-        else {
-          /* Used else condition as it was otherwise sending rudderIdentifier twice 
+          });
+      } else {
+        /* Used else condition as it was otherwise sending rudderIdentifier twice 
           as previous request didn't get completed 
           and we tried sending one more
           */
-          checkAndSendRudderIdentifier();// sending rudderIdentifier periodically after this
-        }
-      });
-    getSourceConfig().then(response => {
+        checkAndSendRudderIdentifier(); // sending rudderIdentifier periodically after this
+      }
+    });
+    getSourceConfig().then((response) => {
       if (response.source?.config?.disableClientSideIdentifier === true) {
         enableClientIdentifierEvents = false;
       } else {
         enableClientIdentifierEvents = true;
         identifyUser();
       }
-      version = response.source?.config?.version || "v0";
-    })
+      version = response.source?.config?.version;
+    });
 
     productListViews();
     trackPageEvent();
@@ -235,17 +239,21 @@ var rudderTracking = (function () {
     }
     productsOnThePage.forEach((element) => {
       const isProductVisible = productIsVisible(window, element);
-      const isProductAlreadyConsidered = productConsidered.includes(element.href);
-      if (isProductVisible && !isProductAlreadyConsidered && (!excludeCurrentPage || !element.href.includes(pageURL))) {
+      const isProductAlreadyConsidered = productConsidered.includes(
+        element.href
+      );
+      if (
+        isProductVisible &&
+        !isProductAlreadyConsidered &&
+        (!excludeCurrentPage || !element.href.includes(pageURL))
+      ) {
         elementsToSend.push(element);
         productConsidered.push(element.href);
       }
     });
     if (elementsToSend.length > 0) {
       elementsToSend.forEach(async (product) => {
-        const handle = product.href.match(
-          /(\/products\/)((\w|-)*)(\?|\$?)/
-        )[2];
+        const handle = product.href.match(/(\/products\/)((\w|-)*)(\?|\$?)/)[2];
         await rs$
           .get(`/products/${handle}.json`, undefined, undefined, "JSON")
           .then((data) => {
@@ -253,11 +261,11 @@ var rudderTracking = (function () {
             const rudderstackProduct = propertyMapping(
               data.product,
               productMapping
-            ); // here as well 
+            ); // here as well
             rudderstackProduct.currency = pageCurrency;
             rudderstackProduct.sku = String(
               rudderstackProduct.variant[0]?.sku ||
-              rudderstackProduct.product_id
+                rudderstackProduct.product_id
             );
             rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
             products.push(rudderstackProduct);
@@ -303,7 +311,7 @@ var rudderTracking = (function () {
       if (
         heapCookieObject &&
         cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-        "captured"
+          "captured"
       ) {
         rudderanalytics.identify(userId, {
           heapUserID: heapCookieObject.userId,
@@ -327,7 +335,7 @@ var rudderTracking = (function () {
     if (
       heapCookieObject &&
       cookie_action({ action: "get", name: "rudder_heap_identities" }) !==
-      "captured"
+        "captured"
     ) {
       rudderanalytics.identify(rudderanalytics.getUserId(), {
         heapUserID: heapCookieObject.userId,
@@ -346,18 +354,17 @@ var rudderTracking = (function () {
 
   function checkCartNeedsToBeUpdated(cart) {
     const { attributes } = cart;
-    return !(attributes?.rudderAnonymousId);
+    return !attributes?.rudderAnonymousId;
   }
   function sendRudderIdentifierPeriodically() {
     getAndSendIdentifierToRudderWebhook();
     const cookieUpdateFixedInterval = 50 * 60 * 1000; // 50 mins
-    setInterval(getAndSendIdentifierToRudderWebhook
-      , cookieUpdateFixedInterval);
+    setInterval(getAndSendIdentifierToRudderWebhook, cookieUpdateFixedInterval);
   }
   function getAndSendIdentifierToRudderWebhook() {
     fetchCart().then((cart) => {
       sendIdentifierToRudderWebhook(cart);
-    })
+    });
   }
   function updateCartAttribute() {
     const anonymousId = rudderanalytics.getAnonymousId();
@@ -375,12 +382,14 @@ var rudderTracking = (function () {
   function getTimeForCookieUpdate() {
     const thresholdTime = 50 * 60 * 1000; // 50 mins
     const currentTime = Date.now();
-    const last_updated_at = Number(cookie_action({
-      action: "get",
-      name: "rs_shopify_cart_identified_at",
-    }));
+    const last_updated_at = Number(
+      cookie_action({
+        action: "get",
+        name: "rs_shopify_cart_identified_at",
+      })
+    );
     const timeToUpdate = thresholdTime - (currentTime - last_updated_at);
-    return timeToUpdate
+    return timeToUpdate;
   }
 
   function sendIdentifierToRudderWebhook(cart) {
@@ -390,7 +399,7 @@ var rudderTracking = (function () {
       event: "rudderIdentifier",
       anonymousId: rudderanalytics.getAnonymousId(),
       cartToken: cart.token,
-      cart: cart
+      cart: cart,
     };
     rs$
       .ajax({
@@ -412,8 +421,8 @@ var rudderTracking = (function () {
       action: "set",
       expire_hr: 2,
       name: "rs_shopify_cart_identified_at",
-      value: `${Date.now()}`
-    }
+      value: `${Date.now()}`,
+    };
     cookie_action(cookieOptions);
   }
   function fetchCart() {
@@ -481,17 +490,19 @@ var rudderTracking = (function () {
         }
       } else {
         if (payload[j.src]) {
-          // If there are many variants for a product then we will be sending data for the one currently visible 
+          // If there are many variants for a product then we will be sending data for the one currently visible
           if (j.src === "variants" && Array.isArray(payload[j.src])) {
             if (variantId || variantId != null) {
-              const variant = payload[j.src].find(i => String(i.id) === variantId);
+              const variant = payload[j.src].find(
+                (i) => String(i.id) === variantId
+              );
               if (variant) {
                 destinationPayload[j.dest] = [variant];
               }
-            } if (!destinationPayload[j.dest]) {
+            }
+            if (!destinationPayload[j.dest]) {
               // if we could not get variantId then by default will send the first variant object of array
               destinationPayload[j.dest] = [payload[j.src][0]];
-
             }
           } else {
             destinationPayload[j.dest] = payload[j.src];
@@ -513,13 +524,17 @@ var rudderTracking = (function () {
       console.info("RudderStack does not track this page");
     } else {
       const pagePathArr = pagePath.split("/");
-      if (pagePathArr[pagePathArr.length - 2] == "products") { // If the url is = /products/{productId} -> Product Page
+      if (pagePathArr[pagePathArr.length - 2] == "products") {
+        // If the url is = /products/{productId} -> Product Page
         var alreadyViewedVariants = [];
         var replaceState = history.replaceState;
         history.replaceState = function () {
           replaceState.apply(history, arguments);
           const currentVariant = getCurrentVariantId();
-          if (currentVariant != null && !alreadyViewedVariants.includes(currentVariant)) {
+          if (
+            currentVariant != null &&
+            !alreadyViewedVariants.includes(currentVariant)
+          ) {
             alreadyViewedVariants.push(currentVariant);
             productPage(mappedPageName, currentVariant);
           }
@@ -564,7 +579,6 @@ var rudderTracking = (function () {
       if (enableClientIdentifierEvents) {
         rs$("#customer_login").submit(userLoggedIn);
       }
-
     } else {
       rudderanalytics.page(category, pageName, properties);
     }
@@ -703,7 +717,7 @@ var rudderTracking = (function () {
   So this acts as a fallback so that nothing breaks. 
   To be deprecated soon
   */
-  const handleProductListViewFallback = event => {
+  const handleProductListViewFallback = (event) => {
     let url = getUrl();
     if (pageURL.indexOf("/collections/") > -1) {
       const [referrer, all] = url.split("collections");
@@ -731,7 +745,7 @@ var rudderTracking = (function () {
           console.log(error);
         });
     }
-  }
+  };
 
   // mapping seems fine
   function handleProductClicked() {
@@ -741,7 +755,11 @@ var rudderTracking = (function () {
       .done(function (data) {
         console.log("[Product Clicked] data.product", data.product);
         const variantId = getCurrentVariantId();
-        const payload = propertyMapping(data.product, productMapping, variantId);
+        const payload = propertyMapping(
+          data.product,
+          productMapping,
+          variantId
+        );
         payload.currency = pageCurrency;
 
         rs$(htmlSelector.buttonAddToCart).on("click", addToCart.bind(payload));
@@ -759,7 +777,7 @@ var rudderTracking = (function () {
   function getCurrentVariantId() {
     const parameters = window.location.search;
     let params = new URLSearchParams(parameters);
-    const variantId = params.get("variant")
+    const variantId = params.get("variant");
     if (variantId) {
       return variantId;
     }
@@ -780,7 +798,11 @@ var rudderTracking = (function () {
     }
     _getJsonData(url)
       .done(function (data) {
-        const payload = propertyMapping(data.product, productMapping, variantId);
+        const payload = propertyMapping(
+          data.product,
+          productMapping,
+          variantId
+        );
         payload.currency = pageCurrency;
         payload.sku = String(payload.variant[0].sku || payload.product_id);
         if (payload.variant && !payload.price) {
@@ -802,7 +824,7 @@ var rudderTracking = (function () {
 
   // mapping seems fine
   function addToCart() {
-    if (version === "v0") {
+    if (version !== "v1") {
       rudderanalytics.track("Product Added", this);
     }
   }
