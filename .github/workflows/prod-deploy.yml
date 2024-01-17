@@ -40,7 +40,7 @@ jobs:
       img_tag: ${{ needs.extract-version.outputs.version }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   create-pull-request:
     name: Create Pull Request for Shopify Tracker Helm Chart
