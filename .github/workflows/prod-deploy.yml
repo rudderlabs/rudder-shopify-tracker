@@ -80,4 +80,4 @@ jobs:
           git add values.yaml
           git commit -m "chore: upgrade shopify tracker to $TAG_NAME"
           git push -u origin shopify-tracker-$TAG_NAME
-          hub pull-request -m "chore: upgrade shopify tracker to $TAG_NAME"
+          gh pr create --fill
