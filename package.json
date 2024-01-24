@@ -11,6 +11,9 @@
     "commit-msg": "commitlint --edit",
     "test": "jest"
   },
+  "pre-commit": [
+    "test"
+  ],
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
     "*.{json,js,ts,md}": "prettier --write"
