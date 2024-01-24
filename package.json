@@ -7,13 +7,10 @@
     "start": "node main.js",
     "release": "npx standard-version",
     "release:github": "DEBUG=conventional-github-releaser npx conventional-github-releaser -p angular --config github-release.config.js",
-    "pre-commit": "npx lint-staged",
     "commit-msg": "commitlint --edit",
-    "test": "jest"
+    "test": "jest",
+    "pre-commit": "npx lint-staged && npm run test"
   },
-  "pre-commit": [
-    "test"
-  ],
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
     "*.{json,js,ts,md}": "prettier --write"
