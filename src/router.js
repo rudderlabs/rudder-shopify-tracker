@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { join } = require('path');
 const Router = require('koa-router');
 const axios = require('axios');
 require('dotenv').config();
@@ -22,10 +23,10 @@ router.get('/load', async (ctx) => {
     return ctx;
   }
 
-  let d = fs.readFileSync('./loadingCode.js', {
+  let d = fs.readFileSync(join(__dirname, 'loadingCode.js'), {
     encoding: 'utf-8',
   });
-  let deviceModeInit = fs.readFileSync('./deviceModeInit.js', {
+  let deviceModeInit = fs.readFileSync(join(__dirname, 'deviceModeInit.js'), {
     encoding: 'utf-8',
   });
 

@@ -2,9 +2,9 @@
   "name": "rudderstack-shopify-tracker",
   "version": "1.4.9",
   "description": "Tracks client-side events on Shopify stores",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
-    "start": "node main.js",
+    "start": "node src/main.js",
     "release": "npx standard-version",
     "release:github": "DEBUG=conventional-github-releaser npx conventional-github-releaser -p angular --config github-release.config.js",
     "commit-msg": "commitlint --edit",

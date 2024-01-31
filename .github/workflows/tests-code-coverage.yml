@@ -1,4 +1,4 @@
-name: Tests & code coverage
+name: Tests with lint check and code coverage
 on:
   workflow_call:
     secrets:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   coverage:
-    name: Tests, lint check & Code Coverage
+    name: Tests with lint check and code coverage
     runs-on: ubuntu-latest
 
     steps:
