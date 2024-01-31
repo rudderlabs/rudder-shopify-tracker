@@ -1,4 +1,4 @@
-name: DT Tests
+name: Tests & code coverage
 on:
   workflow_call:
     secrets:
@@ -38,19 +38,19 @@ jobs:
         with:
           directory: ./reports/coverage
 
-      - name: Fix filesystem paths in generated reports
-        if: always()
-        run: |
-          sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/coverage/lcov.info
-          sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/ts-coverage/lcov.info
-          sed -i 's+/home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/eslint.json
-
       - name: Update sonar-project.properties
         run: |
           # Retrieve the version from package.json
           version=$(node -e "console.log(require('./package.json').version)")
           # Update the sonar-project.properties file with the version
           sed -i "s/sonar.projectVersion=.*$/sonar.projectVersion=$version/" sonar-project.properties
+
+      - name: Fix filesystem paths in generated reports
+        if: always()
+        run: |
+          sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/coverage/lcov.info
+          sed -i 's+/home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/eslint.json
+
 
       - name: SonarCloud Scan
         if: always()
