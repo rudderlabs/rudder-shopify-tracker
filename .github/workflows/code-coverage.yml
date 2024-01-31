@@ -10,7 +10,7 @@ on:
 
 jobs:
   coverage:
-    name: Code Coverage
+    name: Tests, lint check & Code Coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -28,14 +28,29 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Tests
+      - name: Run Tests & lint check
         run: |
           npm run test
+          npm run check:lint
 
       - name: Upload Coverage Reports to Codecov
         uses: codecov/codecov-action@v3.1.4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./reports/coverage
+
+      - name: Fix filesystem paths in generated reports
+        if: always()
+        run: |
+          sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/coverage/lcov.info
+          sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/ts-coverage/lcov.info
+          sed -i 's+/home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/eslint.json
+
+      - name: Update sonar-project.properties
+        run: |
+          # Retrieve the version from package.json
+          version=$(node -e "console.log(require('./package.json').version)")
+          # Update the sonar-project.properties file with the version
+          sed -i "s/sonar.projectVersion=.*$/sonar.projectVersion=$version/" sonar-project.properties
 
       - name: SonarCloud Scan
         if: always()
