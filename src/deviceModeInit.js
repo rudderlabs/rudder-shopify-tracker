@@ -11,6 +11,7 @@ let _rudderTracking = (function () {
   let pagePathArr = '';
   let userId;
   let enableClientIdentifierEvents;
+  let heapCookieObject;
 
   const cartItemMapping = [
     { dest: 'product_id', src: 'product_id' },
