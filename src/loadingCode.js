@@ -2,7 +2,7 @@
   // console.log("start of loader script");
   rudderanalytics = window.rudderanalytics = [];
 
-  var methods = [
+  let methods = [
     'load',
     'page',
     'track',
@@ -15,8 +15,8 @@
     'setAnonymousId',
   ];
 
-  for (var i = 0; i < methods.length; i++) {
-    var method = methods[i];
+  for (let i = 0; i < methods.length; i++) {
+    let method = methods[i];
     rudderanalytics[method] = (function (methodName) {
       return function () {
         rudderanalytics.push([methodName].concat(Array.prototype.slice.call(arguments)));

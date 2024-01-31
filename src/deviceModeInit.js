@@ -1,4 +1,4 @@
-var _rudderTracking = (function () {
+let _rudderTracking = (function () {
   const pages = {
     '/products/': 'Product Viewed',
     '/cart': 'Cart Viewed',
@@ -140,7 +140,7 @@ var _rudderTracking = (function () {
             sendSessionIdentifierToRudderWebhook(cart); // sending sessionIdentifier
             console.log('Successfully updated cart');
             checkAndSendSessionRudderIdentifierPeriodically();
-            checkAndSendRudderIdentifier(cart, (delay = 10000));
+            checkAndSendRudderIdentifier(cart, 10000);
           })
           .catch((error) => {
             console.debug('Error occurred while updating cart:', error);
@@ -189,7 +189,7 @@ var _rudderTracking = (function () {
   };
   function getAllProductsOnPage() {
     const allAnchorTags = document.getElementsByTagName('a');
-    const productUrlRegex = new RegExp(`^(?!\/\/cdn)[-\.:\/,a-z,A-Z,0-9]*\/products\/`);
+    const productUrlRegex = /^(?!\/\/cdn)[-.:/,a-z,A-Z,0-9]*\/products\//;
     const allAnchorTagsWithProducts = Array.prototype.slice
       .call(allAnchorTags)
       .filter((anchorTag) => {
@@ -234,14 +234,12 @@ var _rudderTracking = (function () {
         await rs$
           .get(`/products/${handle}.json`, undefined, undefined, 'JSON')
           .then((data) => {
-            const products = [];
             const rudderstackProduct = propertyMapping(data.product, productMapping); // here as well
             rudderstackProduct.currency = pageCurrency;
             rudderstackProduct.sku = String(
               rudderstackProduct.variant[0]?.sku || rudderstackProduct.product_id,
             );
             rudderstackProduct.price = rudderstackProduct.variant[0]?.price;
-            products.push(rudderstackProduct);
             productsToSend.push(rudderstackProduct);
           })
           .catch((error) => {
@@ -537,7 +535,7 @@ var _rudderTracking = (function () {
   }
 
   function isPage(name) {
-    return pageURL.indexOf(name) > -1 ? true : false;
+    return pageURL.indexOf(name) > -1;
   }
 
   function trackProductPages(mappedPageName) {
@@ -548,8 +546,8 @@ var _rudderTracking = (function () {
       const pagePathArr = pagePath.split('/');
       if (pagePathArr[pagePathArr.length - 2] == 'products') {
         // If the url is = /products/{productId} -> Product Page
-        var alreadyViewedVariants = [];
-        var replaceState = history.replaceState;
+        let alreadyViewedVariants = [];
+        let replaceState = history.replaceState;
         history.replaceState = function () {
           replaceState.apply(history, arguments);
           const currentVariant = getCurrentVariantId();
@@ -832,7 +830,7 @@ var _rudderTracking = (function () {
   }
 
   function _getJsonData(url) {
-    var defer = rs$.Deferred();
+    let defer = rs$.Deferred();
     rs$.ajax({
       url,
       dataType: 'jsonp',
@@ -851,11 +849,11 @@ var _rudderTracking = (function () {
 
   // utility function to get cookie value
   function cookie_parse() {
-    var obj = {};
-    var pairs = document.cookie.split(/ *; */);
-    var pair;
+    let obj = {};
+    let pairs = document.cookie.split(/ *; */);
+    let pair;
     if ('' == pairs[0]) return obj;
-    for (var i = 0; i < pairs.length; ++i) {
+    for (let i = 0; i < pairs.length; ++i) {
       pair = pairs[i].split('=');
       obj[pair[0]] = pair[1];
     }
@@ -891,8 +889,8 @@ var _rudderTracking = (function () {
   //   init: init,
   // };
 
-  var rs$;
-  var script = document.createElement('script');
+  let rs$;
+  let script = document.createElement('script');
   script.setAttribute('src', '//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js');
   document.head.appendChild(script);
   // rs$ = $.noConflict(true);
