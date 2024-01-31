@@ -230,9 +230,9 @@ let _rudderTracking = (function () {
       }
     });
     if (elementsToSend.length > 0) {
-      elementsToSend.forEach(async (product) => {
+      elementsToSend.forEach((product) => {
         const handle = product.href.match(/(\/products\/)((\w|-)*)(\?|\$?)/)[2];
-        await rs$
+        rs$
           .get(`/products/${handle}.json`, undefined, undefined, 'JSON')
           .then((data) => {
             const rudderstackProduct = propertyMapping(data.product, productMapping); // here as well
