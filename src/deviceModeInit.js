@@ -851,7 +851,7 @@ let _rudderTracking = (function () {
   // utility function to get cookie value
   function cookie_parse() {
     let obj = {};
-    let pairs = document.cookie.split(';');
+    let pairs = document.cookie.split(/ *; */);
     let pair;
     if ('' == pairs[0]) return obj;
     for (let i = 0; i < pairs.length; ++i) {
