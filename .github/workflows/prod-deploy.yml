@@ -1,12 +1,14 @@
 name: Docker Image CI for shopify-tracker
 on:
-  push:
-    branches: [main]
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
+        description: Personal access token to be used for cloning rudder-devops
 
 permissions: read-all
 
@@ -14,7 +16,6 @@ jobs:
   extract-version:
     name: Extract Version
     runs-on: ubuntu-latest
-    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
     outputs:
       version: ${{ steps.get-version.outputs.version }}
 
@@ -28,12 +29,11 @@ jobs:
         id: get-version
         run: |
           version=$(jq -r .version package.json)
-          echo "Version: $version"        
+          echo "Version: $version"
           echo "version=$version" >> $GITHUB_OUTPUT
 
   build:
     name: Build Shopify Tracker Docker Image
-    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
     needs: [extract-version]
     uses: ./.github/workflows/build-and-push-docker-image.yml
     with:
