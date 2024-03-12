@@ -1,12 +1,14 @@
 name: Docker Image CI for shopify-tracker
 on:
-  push:
-    branches: [main]
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
+        description: Personal access token to be used for cloning rudder-devops
 
 permissions: read-all
 
@@ -28,7 +30,7 @@ jobs:
         id: get-version
         run: |
           version=$(jq -r .version package.json)
-          echo "Version: $version"        
+          echo "Version: $version"
           echo "version=$version" >> $GITHUB_OUTPUT
 
   build:
