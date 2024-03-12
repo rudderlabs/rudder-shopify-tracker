@@ -1,0 +1,87 @@
+on:
+  push:
+    branches:
+      - 'main'
+
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    steps:
+      - name: Extract Branch Name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          token: ${{ github.token }}
+          pull-request-title-pattern: 'chore: release ${version}'
+          release-type: node
+          package-name: 'rudder-shopify-tracker'
+          default-branch: ${{ steps.extract_branch.outputs.branch }}
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false},{"type":"refactor","section":"Miscellaneous","hidden":false},{"type":"test","section":"Miscellaneous","hidden":false},{"type":"doc","section":"Documentation","hidden":false}]'
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+
+  production-release:
+    name: Make production release for shopify-tracker
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release_created }}
+    uses: ./.github/workflows/prod-deploy.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      PAT: ${{ secrets.PAT }}
+
+  post-release-to-prod:
+    name: Post release actions
+    runs-on: ubuntu-latest
+    needs: [release-please, release-to-prod]
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      - name: Delete Release Branch
+        uses: koj-co/delete-merged-action@master
+        if: startsWith(github.event.pull_request.head.ref, 'release-please--branches')
+        with:
+          branches: 'release-please--branches*'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack Channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.24.0
+        continue-on-error: true
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          PROJECT_NAME: 'Rudder Shopify Tracker'
+          RELEASES_URL: 'https://github.com/rudderlabs/rudder-shopify-tracker/releases/tag/'
+        with:
+          channel-id: ${{ secrets.SLACK_RELEASE_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "*<${{env.RELEASES_URL}}v${{ steps.extract-version.outputs.release_version }}|v${{ steps.extract-version.outputs.release_version }}>*\nCC: <@U03KG4BK1L1> <@U01LVJ30QEB> <@U01FG952S8Y>",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": ":tada:  ${{ env.PROJECT_NAME }} - New GitHub Release  :tada:"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*<${{env.RELEASES_URL}}v${{ steps.extract-version.outputs.release_version }}|v${{ steps.extract-version.outputs.release_version }}>*\nCC: <@U03KG4BK1L1> <@U01LVJ30QEB> <@U01FG952S8Y>"
+                  }
+                }
+              ]
+            }
