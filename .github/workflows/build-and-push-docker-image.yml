@@ -28,18 +28,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4.0.2
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        env:
-          HUSKY: 0
-        run: |
-          npm ci
-
       - name: Build and Push Images
         uses: docker/build-push-action@v5
         with:
