@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      pr_created: ${{steps.release.outputs.pr_created}}
       release_version: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
     steps:
       - name: Extract Branch Name
@@ -28,6 +29,17 @@ jobs:
           changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false},{"type":"refactor","section":"Miscellaneous","hidden":false},{"type":"test","section":"Miscellaneous","hidden":false},{"type":"doc","section":"Documentation","hidden":false}]'
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
+
+  staging-deploy-pr:
+    if: ${{needs.release-please.outputs.pr_created}}
+    needs: [release-please]
+    uses: ./.github/workflows/staging-deploy.yml
+    with:
+      image_tag: ${{needs.release-please.outputs.release_version}}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      PAT: ${{ secrets.PAT }}
 
   production-release:
     name: Make production release for shopify-tracker
