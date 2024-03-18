@@ -1,6 +1,6 @@
-const Koa = require("koa");
-const dotenv = require("dotenv");
-const router = require("./router");
+const Koa = require('koa');
+const dotenv = require('dotenv');
+const router = require('./router');
 
 dotenv.config();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 9091;
