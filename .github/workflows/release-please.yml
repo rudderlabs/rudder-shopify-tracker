@@ -47,7 +47,6 @@ jobs:
     steps:
       - name: Delete Release Branch
         uses: koj-co/delete-merged-action@master
-        if: startsWith(github.event.pull_request.head.ref, 'release-please--branches')
         with:
           branches: 'release-please--branches*'
         env:
@@ -81,7 +80,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*<${{env.RELEASES_URL}}v${{ steps.extract-version.outputs.release_version }}|v${{ steps.extract-version.outputs.release_version }}>*\nCC: <@U03KG4BK1L1> <@U01LVJ30QEB> <@U01FG952S8Y>"
+                    "text": "*<${{env.RELEASES_URL}}v${{ needs.release-please.outputs.release_version }}>*\nCC: <@U03KG4BK1L1> <@U01LVJ30QEB> <@U01FG952S8Y>"
                   }
                 }
               ]
