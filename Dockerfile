@@ -12,7 +12,7 @@ COPY package*.json ./
 COPY . .
 RUN rm -rf /usr/src/app/node_modules
 
-RUN npm install --only=prod
+RUN npm ci --no-audit --cache .npm
 # If you are building your code for production
 # RUN npm ci --only=production
 
