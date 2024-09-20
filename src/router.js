@@ -10,25 +10,8 @@ const configUrl = process.env.CONFIG_BACKEND_URL || 'https://api.rudderstack.com
 const jsSdkCdnUrl =
   process.env.JS_SDK_CDN || 'https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js';
 
-const ensureHttpsPrefix = (url) => {
-  // Check if the URL starts with http:// or https://
-  if (!/^https?:\/\//i.test(url)) {
-    return `https://${url}`;
-  }
-  return url;
-};
-
-const formatDataPlaneURL = (dataPlaneUrl) => {
-  // TODO :: Sanitize dataplane url with basic checks before prefixing with https
-  const newDataPlaneUrl = ensureHttpsPrefix(dataPlaneUrl);
-  try {
-    new URL(newDataPlaneUrl); // This will throw if the URL is invalid
-    return newDataPlaneUrl;
-  } catch {
-    return undefined;
-  }
-};
 const isValidWriteKey = (writeKey) => /^[A-Za-z0-9_]{5,}$/.test(writeKey);
+const isValidDataPlaneURL = (dataPlaneUrl) => /^(?!:\/\/)([a-zA-Z0-9-_]{1,63}\.)+[a-zA-Z]{2,6}$/.test(dataPlaneUrl);
 
 router.get('/load', async (ctx) => {
   // only takes in writeKey and DataPlane Url
@@ -53,18 +36,16 @@ router.get('/load', async (ctx) => {
   const { writeKey, dataPlaneUrl } = ctx.request.query;
   console.log('writeKey', writeKey);
   console.log('dataplaneUrl', dataPlaneUrl);
-  if (formatDataPlaneURL(dataPlaneUrl) === undefined || !isValidWriteKey(writeKey)) {
+  if (!isValidDataPlaneURL(dataPlaneUrl) || !isValidWriteKey(writeKey)) {
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing',
     };
     ctx.status = 400;
     return ctx;
   }
-  const formattedDataPlaneUrl = formatDataPlaneURL(dataPlaneUrl);
-  console.log('formattedDataPlaneUrl', formattedDataPlaneUrl);
-
+  
   d = d.replace('writeKey', writeKey);
-  d = d.replace('dataPlaneUrl', formattedDataPlaneUrl);
+  d = d.replace('dataPlaneUrl', dataPlaneUrl);
   d = d.replace('configBackendUrl', configUrl);
 
   const pollTimeForSessionIdentifierCheck =
@@ -73,7 +54,7 @@ router.get('/load', async (ctx) => {
     /sessionIdentifierPollTime_placeHolder/g,
     pollTimeForSessionIdentifierCheck,
   );
-  deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, formattedDataPlaneUrl);
+  deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, dataPlaneUrl);
   deviceModeInit = deviceModeInit.replace(/writeKey_placeHolder/g, writeKey);
   deviceModeInit = deviceModeInit.replace(/configUrl_placeholder/g, configUrl);
 
