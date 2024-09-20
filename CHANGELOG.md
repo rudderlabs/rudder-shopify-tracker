@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.4.10...v1.5.0) (2024-09-20)
+
+
+### Features
+
+* add query params sanitization ([a769f66](https://github.com/rudderlabs/rudder-shopify-tracker/commit/a769f66cefb6e43b86f560eee7a8a225e004c322))
+
 ### [1.4.10](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.4.9...v1.4.10) (2024-03-26)
 
 ### [1.4.9](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.4.8...v1.4.9) (2024-01-18)

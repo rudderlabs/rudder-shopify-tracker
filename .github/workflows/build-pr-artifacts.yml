@@ -17,6 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
           
       - name: Validate Branch Name
@@ -24,10 +25,11 @@ jobs:
         run: |
           # Perform input validation here
           # For example, check for forbidden characters
-          if [[ "${{ github.head_ref }}" =~ [^a-zA-Z0-9._-] ]]; then
+          if [[ "${{ github.head_ref }}" =~ [^a-zA-Z0-9._-/] ]]; then
             echo "Error: Branch name contains invalid characters."
             exit 1
           fi
+
 
       # Replace problematic characters in branch name (like '/') with safe characters (like '.')
       - name: Generate Tag Names

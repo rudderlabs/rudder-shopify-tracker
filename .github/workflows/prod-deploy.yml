@@ -22,6 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.0
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
 
       - name: Get image version
