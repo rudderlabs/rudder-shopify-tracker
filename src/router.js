@@ -18,13 +18,14 @@ const ensureHttpsPrefix = (url) => {
   return url;
 };
 
-const isValidDataPlaneURL = (dataPlaneUrl) => {
+const formatDataPlaneURL = (dataPlaneUrl) => {
+  // TODO :: Sanitize dataplane url with basic checks before prefixing with https
   const newDataPlaneUrl = ensureHttpsPrefix(dataPlaneUrl);
   try {
     new URL(newDataPlaneUrl); // This will throw if the URL is invalid
-    return true;
+    return newDataPlaneUrl;
   } catch {
-    return false;
+    return undefined;
   }
 };
 const isValidWriteKey = (writeKey) => /^[A-Za-z0-9_]{5,}$/.test(writeKey);
@@ -52,16 +53,18 @@ router.get('/load', async (ctx) => {
   const { writeKey, dataPlaneUrl } = ctx.request.query;
   console.log('writeKey', writeKey);
   console.log('dataplaneUrl', dataPlaneUrl);
-  if (!isValidDataPlaneURL(dataPlaneUrl) || !isValidWriteKey(writeKey)) {
+  if (formatDataPlaneURL(dataPlaneUrl) === undefined || !isValidWriteKey(writeKey)) {
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing',
     };
     ctx.status = 400;
     return ctx;
   }
+  const formattedDataPlaneUrl = formatDataPlaneURL(dataPlaneUrl);
+  console.log('formattedDataPlaneUrl', formattedDataPlaneUrl);
 
   d = d.replace('writeKey', writeKey);
-  d = d.replace('dataPlaneUrl', dataPlaneUrl);
+  d = d.replace('dataPlaneUrl', formattedDataPlaneUrl);
   d = d.replace('configBackendUrl', configUrl);
 
   const pollTimeForSessionIdentifierCheck =
@@ -70,7 +73,7 @@ router.get('/load', async (ctx) => {
     /sessionIdentifierPollTime_placeHolder/g,
     pollTimeForSessionIdentifierCheck,
   );
-  deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, dataPlaneUrl);
+  deviceModeInit = deviceModeInit.replace(/dataplaneUrl_placeHolder/g, formattedDataPlaneUrl);
   deviceModeInit = deviceModeInit.replace(/writeKey_placeHolder/g, writeKey);
   deviceModeInit = deviceModeInit.replace(/configUrl_placeholder/g, configUrl);
 
