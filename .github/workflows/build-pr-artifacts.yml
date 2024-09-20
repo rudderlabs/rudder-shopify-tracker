@@ -19,7 +19,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
-
+          
       - name: Validate Branch Name
         id: validate_branch_name
         run: |
@@ -29,6 +29,7 @@ jobs:
             echo "Error: Branch name contains invalid characters."
             exit 1
           fi
+
 
       # Replace problematic characters in branch name (like '/') with safe characters (like '.')
       - name: Generate Tag Names

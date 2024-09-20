@@ -10,6 +10,25 @@ const configUrl = process.env.CONFIG_BACKEND_URL || 'https://api.rudderstack.com
 const jsSdkCdnUrl =
   process.env.JS_SDK_CDN || 'https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js';
 
+const ensureHttpsPrefix = (url) => {
+  // Check if the URL starts with http:// or https://
+  if (!/^https?:\/\//i.test(url)) {
+    return `https://${url}`;
+  }
+  return url;
+};
+
+const isValidDataPlaneURL = (dataPlaneUrl) => {
+  const newDataPlaneUrl = ensureHttpsPrefix(dataPlaneUrl);
+  try {
+    new URL(newDataPlaneUrl); // This will throw if the URL is invalid
+    return true;
+  } catch {
+    return false;
+  }
+};
+const isValidWriteKey = (writeKey) => /^[A-Za-z0-9_]{5,}$/.test(writeKey);
+
 router.get('/load', async (ctx) => {
   // only takes in writeKey and DataPlane Url
 
@@ -31,15 +50,16 @@ router.get('/load', async (ctx) => {
   });
 
   const { writeKey, dataPlaneUrl } = ctx.request.query;
-  if (!writeKey || !dataPlaneUrl) {
+  console.log('writeKey', writeKey);
+  console.log('dataplaneUrl', dataPlaneUrl);
+  if (!isValidDataPlaneURL(dataPlaneUrl) || !isValidWriteKey(writeKey)) {
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing',
     };
     ctx.status = 400;
     return ctx;
   }
-  console.log('writeKey', writeKey);
-  console.log('dataplaneUrl', dataPlaneUrl);
+
   d = d.replace('writeKey', writeKey);
   d = d.replace('dataPlaneUrl', dataPlaneUrl);
   d = d.replace('configBackendUrl', configUrl);
