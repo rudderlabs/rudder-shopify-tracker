@@ -22,7 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.4",
-    "commitlint": "^17.7.1",
+    "commitlint": "^17.6.3",
     "conventional-github-releaser": "^3.1.5",
     "dotenv": "^15.0.0",
     "husky": "^8.0.3",
@@ -32,7 +32,7 @@
     "standard-version": "^9.5.0"
   },
   "devDependencies": {
-    "@commitlint/config-conventional": "^18.5.0",
+    "@commitlint/config-conventional": "^17.6.3",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-json": "^3.1.0",
