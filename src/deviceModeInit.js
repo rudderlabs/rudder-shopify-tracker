@@ -340,7 +340,7 @@ let _rudderTracking = (function () {
 
   // common function for sending anonymousId and sessionId Identifier
   function sendToRudderWebhook(data, type, updateTypeCookieFunction, retryAttempt = 0) {
-    const webhookUrl = 'https://dataplaneUrl_placeHolder/v1/webhook?writeKey=writeKey_placeHolder';
+    const webhookUrl = 'dataplaneUrl_placeHolder/v1/webhook?writeKey=writeKey_placeHolder';
     const timeToRetry = 1000; // 1 second
     const maxRetries = 3;
     if (maxRetries > retryAttempt) {
