@@ -11,7 +11,8 @@ const jsSdkCdnUrl =
   process.env.JS_SDK_CDN || 'https://cdn.rudderlabs.com/v1.1/rudder-analytics.min.js';
 
 const isValidWriteKey = (writeKey) => /^[A-Za-z0-9_]{5,}$/.test(writeKey);
-const isValidDataPlaneURL = (dataPlaneUrl) => /^(?!:\/\/)([a-zA-Z0-9-_]{1,63}\.)+[a-zA-Z]{2,6}$/.test(dataPlaneUrl);
+const isValidDataPlaneURL = (dataPlaneUrl) =>
+  /^(?!:\/\/)([a-zA-Z0-9-_]{1,63}\.)+[a-zA-Z]{2,6}$/.test(dataPlaneUrl);
 
 router.get('/load', async (ctx) => {
   // only takes in writeKey and DataPlane Url
@@ -37,13 +38,14 @@ router.get('/load', async (ctx) => {
   console.log('writeKey', writeKey);
   console.log('dataplaneUrl', dataPlaneUrl);
   if (!isValidDataPlaneURL(dataPlaneUrl) || !isValidWriteKey(writeKey)) {
+    console.log(`writeKey:${writeKey} or dataPlaneUrl:${dataPlaneUrl} is invalid or missing`);
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing',
     };
     ctx.status = 400;
     return ctx;
   }
-  
+
   d = d.replace('writeKey', writeKey);
   d = d.replace('dataPlaneUrl', dataPlaneUrl);
   d = d.replace('configBackendUrl', configUrl);
