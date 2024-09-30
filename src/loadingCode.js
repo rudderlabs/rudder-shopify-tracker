@@ -23,7 +23,7 @@
       };
     })(method);
   }
-  rudderanalytics.load('writeKey', 'dataPlaneUrl', {
+  rudderanalytics.load('writeKey', 'https://dataPlaneUrl', {
     configUrl: 'configBackendUrl',
     logLevel: 'DEBUG',
   });
