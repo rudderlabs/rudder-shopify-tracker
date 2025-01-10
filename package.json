@@ -1,6 +1,6 @@
 {
   "name": "rudderstack-shopify-tracker",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Tracks client-side events on Shopify stores",
   "main": "src/main.js",
   "scripts": {
@@ -21,8 +21,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.6.4",
-    "commitlint": "^17.6.3",
+    "axios": "^1.7.9",
+    "commitlint": "^19.5.0",
     "conventional-github-releaser": "^3.1.5",
     "dotenv": "^15.0.0",
     "husky": "^8.0.3",

@@ -2,6 +2,7 @@ const fs = require('fs');
 const { join } = require('path');
 const Router = require('koa-router');
 const axios = require('axios');
+const { createLogEntry } = require('./logger');
 require('dotenv').config();
 
 const router = new Router();
@@ -24,6 +25,7 @@ router.get('/load', async (ctx) => {
   } catch (err) {
     ctx.response.body = 'failed to fetch rudder-js-sdk';
     ctx.status = 400;
+    console.log(JSON.stringify(createLogEntry(ctx, 400, 'Failed to fetch rudder-js-sdk')));
     return ctx;
   }
 
@@ -35,14 +37,14 @@ router.get('/load', async (ctx) => {
   });
 
   const { writeKey, dataPlaneUrl } = ctx.request.query;
-  console.log('writeKey', writeKey);
-  console.log('dataplaneUrl', dataPlaneUrl);
   if (!isValidDataPlaneURL(dataPlaneUrl) || !isValidWriteKey(writeKey)) {
-    console.log(`writeKey:${writeKey} or dataPlaneUrl:${dataPlaneUrl} is invalid or missing`);
     ctx.response.body = {
       error: 'writeKey or dataPlaneUrl is invalid or missing',
     };
     ctx.status = 400;
+    console.log(
+      JSON.stringify(createLogEntry(ctx, 400, 'Invalid or missing writeKey/dataPlaneUrl')),
+    );
     return ctx;
   }
 
@@ -63,12 +65,14 @@ router.get('/load', async (ctx) => {
   // console.log("d", d);
   ctx.response.body = d + rudderJsCode + deviceModeInit;
   ctx.set('Content-Type', 'application/javascript');
+  console.log(JSON.stringify(createLogEntry(ctx)));
   return ctx;
 });
 
 router.get('/health', (ctx) => {
   ctx.response.body = 'Server is Up';
   ctx.status = 200;
+  console.log(JSON.stringify(createLogEntry(ctx)));
   return ctx;
 });
 
