@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.6.0...v1.7.0) (2025-01-27)
+
+
+### Features
+
+* remove ip from log ([#187](https://github.com/rudderlabs/rudder-shopify-tracker/issues/187)) ([157ecf6](https://github.com/rudderlabs/rudder-shopify-tracker/commit/157ecf6ef131941a90a34669a8834ff05e781eac))
+
 ## [1.6.0](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.5.2...v1.6.0) (2025-01-10)
 
 

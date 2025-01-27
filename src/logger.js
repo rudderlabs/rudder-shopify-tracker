@@ -4,7 +4,7 @@ const createLogEntry = (ctx, status = 200, error = null) => {
   return {
     timestamp: new Date().toISOString(),
     user_agent: ctx.headers['user-agent'],
-    ip: ctx.ip,
+    // ip: ctx.ip,
     endpoint: ctx.originalUrl,
     status,
     writeKey: writeKey || 'N/A',
