@@ -72,7 +72,6 @@ let _rudderTracking = (function () {
       rs$.ajax({
         url: webhookUrl,
         method: 'GET',
-        contentType: 'application/json',
         timeout: 2000, // 2 seconds timeout
         beforeSend: function (xhr) {
           // Set the Authorization header
