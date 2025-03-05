@@ -85,7 +85,11 @@ let _rudderTracking = (function () {
           }
         },
         error: function (xhr, _status, _error) {
-          console.warn("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+          console.warn(
+            "Couldn't fetch Source Config due to error: " +
+              xhr.responseJSON.message +
+              ' Client-side event tracking will be enabled.',
+          );
           resolve(true);
         },
       });
