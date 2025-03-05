@@ -67,10 +67,10 @@ let _rudderTracking = (function () {
    */
   function isClientSideIdentifierEventsEnabled() {
     const authKey = btoa('writeKey_placeHolder' + ':');
-    const webhookUrl = 'configUrl_placeholder/sourceConfig';
+    const sourceConfigUrl = 'configUrl_placeholder/sourceConfig';
     return new Promise(function (resolve, _reject) {
       rs$.ajax({
-        url: webhookUrl,
+        url: sourceConfigUrl,
         method: 'GET',
         timeout: 2000, // 2 seconds timeout
         beforeSend: function (xhr) {
