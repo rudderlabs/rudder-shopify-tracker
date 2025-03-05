@@ -85,7 +85,7 @@ let _rudderTracking = (function () {
           }
         },
         error: function (xhr, _status, _error) {
-          console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+          console.warn("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
           resolve(true);
         },
       });
