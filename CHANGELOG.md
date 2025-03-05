@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.7.0...v1.7.1) (2025-03-05)
+
+
+### Bug Fixes
+
+* remove redundant json header from get call to sourceConfig ([#195](https://github.com/rudderlabs/rudder-shopify-tracker/issues/195)) ([a0b73de](https://github.com/rudderlabs/rudder-shopify-tracker/commit/a0b73de43d033b568e2dd320f44e11688e6620d1))
+
 ## [1.7.0](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.6.0...v1.7.0) (2025-01-27)
 
 
