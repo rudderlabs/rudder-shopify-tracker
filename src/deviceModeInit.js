@@ -67,12 +67,11 @@ let _rudderTracking = (function () {
    */
   function isClientSideIdentifierEventsEnabled() {
     const authKey = btoa('writeKey_placeHolder' + ':');
-    const webhookUrl = 'configUrl_placeholder/sourceConfig';
+    const sourceConfigUrl = 'configUrl_placeholder/sourceConfig';
     return new Promise(function (resolve, _reject) {
       rs$.ajax({
-        url: webhookUrl,
+        url: sourceConfigUrl,
         method: 'GET',
-        contentType: 'application/json',
         timeout: 2000, // 2 seconds timeout
         beforeSend: function (xhr) {
           // Set the Authorization header
@@ -86,7 +85,11 @@ let _rudderTracking = (function () {
           }
         },
         error: function (xhr, _status, _error) {
-          console.debug("Couldn't fetch Source Config due error: " + xhr.responseJSON.message);
+          console.warn(
+            "Couldn't fetch Source Config due to error: " +
+              xhr.responseJSON.message +
+              ' Client-side event tracking will be enabled.',
+          );
           resolve(true);
         },
       });
