@@ -35,7 +35,7 @@ jobs:
           npm run check:lint
 
       - name: Upload Coverage Reports to Codecov
-        uses: codecov/codecov-action@v3.1.4
+        uses: codecov/codecov-action@v5.4.2
         with:
           directory: ./reports/coverage
 
