@@ -10,7 +10,6 @@
     "commit-msg": "commitlint --edit",
     "test": "jest --passWithNoTests",
     "pre-commit": "npx lint-staged && npm run test",
-    "prepare": "husky install",
     "check:lint": "eslint . -f json -o reports/eslint.json || exit 0"
   },
   "lint-staged": {
