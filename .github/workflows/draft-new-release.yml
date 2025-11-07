@@ -2,8 +2,13 @@ name: Draft New Release
 
 on: workflow_dispatch
 
+permissions:
+  contents: read
+
 jobs:
   draft-new-release:
+    permissions:
+      contents: write  # for Git to git push
     name: Draft New Release
     runs-on: ubuntu-latest
 

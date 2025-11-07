@@ -12,6 +12,9 @@ on:
       DOCKERHUB_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   build-transformer-image-arm64:
     name: Build Shopify Tracker Docker Image

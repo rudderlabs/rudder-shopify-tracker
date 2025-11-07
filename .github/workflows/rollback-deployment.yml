@@ -3,8 +3,13 @@ name: Prepare for Rollback in Production Environment
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   create-rollback-pr:
+    permissions:
+      contents: write  # for Git to git push
     name: Update Helm Charts For Production and Create Pull Request
     runs-on: ubuntu-latest
 
