@@ -2,8 +2,7 @@ FROM node:20-alpine AS base
 
 ENV HUSKY=0
 
-RUN apk update
-RUN apk upgrade
+RUN apk update && apk upgrade
 
 FROM base AS development
 ENV HUSKY=0
