@@ -1,20 +1,43 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
+
+ENV HUSKY=0
+
+RUN apk update
+RUN apk upgrade
+
+FROM base AS development
+ENV HUSKY=0
+
+USER node
 
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /home/node/app
+RUN chown -R node:node /home/node/app
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
 COPY package*.json ./
+COPY .npmrc ./
 
 # Bundle app source
-COPY . .
-RUN rm -rf /usr/src/app/node_modules
+COPY --chown=node:node . .
 
 RUN npm ci --no-audit --cache .npm
-# If you are building your code for production
-# RUN npm ci --only=production
 
 # EXPOSE 9091
+CMD [ "npm", "run", "start" ]
+
+FROM base AS production
+ENV HUSKY=0
+
+USER node
+
+WORKDIR /home/node/app
+RUN chown -R node:node /home/node/app
+
+COPY --chown=node:node . .
+
+RUN npm ci --no-audit --cache .npm --omit=dev
+
 CMD [ "npm", "run", "start" ]

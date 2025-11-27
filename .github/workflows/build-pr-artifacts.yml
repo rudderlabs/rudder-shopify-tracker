@@ -44,6 +44,7 @@ jobs:
     needs: [generate-tag]
     with:
       img_tag: ${{ needs.generate-tag.outputs.image_tag }}
+      target: development
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
