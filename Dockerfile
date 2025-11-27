@@ -36,6 +36,9 @@ USER node
 WORKDIR /home/node/app
 RUN chown -R node:node /home/node/app
 
+COPY package*.json ./
+COPY .npmrc ./
+
 COPY --chown=node:node . .
 
 RUN npm ci --no-audit --cache .npm --omit=dev
