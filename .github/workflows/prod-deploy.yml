@@ -39,6 +39,7 @@ jobs:
     uses: ./.github/workflows/build-and-push-docker-image.yml
     with:
       img_tag: ${{ needs.extract-version.outputs.version }}
+      target: production
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
