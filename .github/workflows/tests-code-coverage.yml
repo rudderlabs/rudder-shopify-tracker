@@ -63,7 +63,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: always()
-        uses: SonarSource/sonarcloud-github-action@eb211723266fe8e83102bac7361f0a05c3ac1d1b # v3.0.0
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
