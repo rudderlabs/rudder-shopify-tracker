@@ -26,10 +26,10 @@ jobs:
       matrix:
         build-config:
           - os: [self-hosted, linux, ARM64, ubuntu-22]
-            tags: ${{ format('rudderstack/rudder-shopify-tracker:{0}-arm64', inputs.img_tag) }}-arm64
+            tags: ${{ format('rudderstack/rudder-shopify-tracker:{0}-arm64', inputs.img_tag) }}
             platform: linux/arm64
           - os: [self-hosted, Linux, X64]
-            tags: ${{ format('rudderstack/rudder-shopify-tracker:{0}-amd64', inputs.img_tag) }}-amd64
+            tags: ${{ format('rudderstack/rudder-shopify-tracker:{0}-amd64', inputs.img_tag) }}
             platform: linux/amd64
     runs-on: ${{ matrix.build-config.os }}
     steps:
