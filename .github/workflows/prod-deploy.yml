@@ -2,11 +2,6 @@ name: Docker Image CI for shopify-tracker
 on:
   push:
     branches: [main]
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
 
 permissions: read-all
 
@@ -14,7 +9,6 @@ jobs:
   extract-version:
     name: Extract Version
     runs-on: ubuntu-latest
-    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
     outputs:
       version: ${{ steps.get-version.outputs.version }}
 
@@ -27,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Get image version
@@ -39,11 +33,11 @@ jobs:
 
   build:
     name: Build Shopify Tracker Docker Image
-    if: ((startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true)
     needs: [extract-version]
     uses: ./.github/workflows/build-and-push-docker-image.yml
     with:
       img_tag: ${{ needs.extract-version.outputs.version }}
+      target: production
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
