@@ -10,7 +10,6 @@
     "commit-msg": "commitlint --edit",
     "test": "jest --passWithNoTests",
     "pre-commit": "npx lint-staged && npm run test",
-    "prepare": "husky install",
     "check:lint": "eslint . -f json -o reports/eslint.json || exit 0"
   },
   "lint-staged": {
@@ -21,12 +20,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.7.9",
-    "commitlint": "^19.5.0",
+    "axios": "^1.13.2",
+    "commitlint": "^19.8.1",
     "conventional-github-releaser": "^3.1.5",
     "dotenv": "^15.0.0",
     "husky": "^8.0.3",
-    "koa": "^2.15.4",
+    "koa": "^2.16.3",
     "koa-router": "^10.1.1",
     "lint-staged": "^16.0.0",
     "standard-version": "^9.5.0"

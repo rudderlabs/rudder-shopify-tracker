@@ -68,13 +68,14 @@ jobs:
           echo "DATE=$(date)" >> $GITHUB_ENV
 
       - name: Pull Changes Into develop Branch
-        uses: repo-sync/pull-request@7e79a9f5dc3ad0ce53138f01df2fad14a04831c5 # v2.12.1
-        with:
-          source_branch: 'main'
-          destination_branch: 'develop'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_title: 'chore(release): pull main into develop post release v${{ steps.extract-version.outputs.release_version }}'
-          pr_body: ':crown: *An automated PR*'
+        run: |
+          gh pr create \
+            --base develop \
+            --head main \
+            --title "chore(release): pull master into develop post release v${{ steps.extract-version.outputs.release_version }}" \
+            --body ":crown: *An automated PR*"
+        env:
+            GH_TOKEN: ${{ secrets.PAT }}
 
       - name: Delete Release Branch
         uses: koj-co/delete-merged-action@63a03c35810a8a7d4840d18793c0f68ff8b59450 # master
