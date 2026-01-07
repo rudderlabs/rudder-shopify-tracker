@@ -3,8 +3,13 @@ name: Prepare for Rollback in Production Environment
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   create-rollback-pr:
+    permissions:
+      contents: write  # for Git to git push
     name: Update Helm Charts For Production and Create Pull Request
     runs-on: ubuntu-latest
 
@@ -13,6 +18,11 @@ jobs:
     if: (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/main')) && (github.actor == 'ItsSudip' || github.actor == 'krishna2020' || github.actor == 'utsabc' || github.triggering_actor == 'shrouti1507') && (github.triggering_actor == 'ItsSudip' || github.triggering_actor == 'krishna2020' || github.triggering_actor == 'utsabc' || github.triggering_actor == 'shrouti1507' )
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Get Target Version
         id: target-version
         run: |

@@ -8,20 +8,28 @@ on:
   pull_request:
     types: ['opened', 'reopened', 'synchronize']
 
+permissions:
+  contents: read
+
 jobs:
   coverage:
     name: Tests with lint check and code coverage
     runs-on: ubuntu-latest
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
 
       - name: Setup Node
-        uses: actions/setup-node@v4.0.1
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -35,7 +43,7 @@ jobs:
           npm run check:lint
 
       - name: Upload Coverage Reports to Codecov
-        uses: codecov/codecov-action@v3.1.4
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         with:
           directory: ./reports/coverage
 
@@ -55,7 +63,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: always()
-        uses: SonarSource/sonarcloud-github-action@v3.0.0
+        uses: SonarSource/sonarcloud-github-action@eb211723266fe8e83102bac7361f0a05c3ac1d1b # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

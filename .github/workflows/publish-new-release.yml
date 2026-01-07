@@ -15,6 +15,11 @@ jobs:
     if: (startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true # only merged pull requests must trigger this job
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Extract Version
         id: extract-version
         run: |
@@ -25,13 +30,13 @@ jobs:
           echo "release_version=$version" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4.0.1
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -73,7 +78,7 @@ jobs:
             GH_TOKEN: ${{ secrets.PAT }}
 
       - name: Delete Release Branch
-        uses: koj-co/delete-merged-action@master
+        uses: koj-co/delete-merged-action@63a03c35810a8a7d4840d18793c0f68ff8b59450 # master
         if: startsWith(github.event.pull_request.head.ref, 'release/')
         with:
           branches: 'release/*'
@@ -81,7 +86,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete Hotfix Release Branch
-        uses: koj-co/delete-merged-action@master
+        uses: koj-co/delete-merged-action@63a03c35810a8a7d4840d18793c0f68ff8b59450 # master
         if: startsWith(github.event.pull_request.head.ref, 'hotfix-release/')
         with:
           branches: 'hotfix-release/*'
@@ -90,7 +95,7 @@ jobs:
 
       - name: Notify Slack Channel
         id: slack
-        uses: slackapi/slack-github-action@v1.27.0
+        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
         continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

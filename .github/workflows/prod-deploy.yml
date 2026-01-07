@@ -13,8 +13,13 @@ jobs:
       version: ${{ steps.get-version.outputs.version }}
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
@@ -45,6 +50,11 @@ jobs:
       TAG_NAME: ${{ needs.extract-version.outputs.version }}
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Initialize Mandatory Git Config
         run: |
           git config --global user.name "GitHub Actions"
