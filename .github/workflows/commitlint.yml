@@ -2,18 +2,29 @@ name: Commitlint
 
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   commitlint:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: read  # for wagoid/commitlint-github-action to get commits in PR
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4.0.1
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -30,7 +41,7 @@ jobs:
 
       # Run the commitlint action, considering its own dependencies and yours as well 🚀
       # `github.workspace` is the path to your repository.
-      - uses: wagoid/commitlint-github-action@v5
+      - uses: wagoid/commitlint-github-action@9763196e10f27aef304c9b8b660d31d97fce0f99 # v5.5.1
         env:
           NODE_PATH: ${{ github.workspace }}/node_modules
         with:
