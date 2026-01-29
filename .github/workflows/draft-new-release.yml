@@ -63,6 +63,7 @@ jobs:
         id: create-release
         env:
           HUSKY: 0
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           source_branch_name=${GITHUB_REF##*/}
           release_type=release
@@ -99,8 +100,19 @@ jobs:
         run: |
           echo "Current version: $CURRENT_VERSION_VALUE"
           echo "New version: $NEW_VERSION_VALUE"
-          npm run release -- -a --skip.tag --no-verify
-          git push
+          npm run release -- -a --skip.commit --skip.tag --no-verify
+
+      - name: Create verified commit via API
+        uses: ryancyq/github-signed-commit@e9f3b28c80da7be66d24b8f501a5abe82a6b855f # v1.2.0
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        with:
+          branch-name: ${{ steps.create-release.outputs.branch_name }}
+          commit-message: 'chore(release): v${{ steps.create-release.outputs.new_version }}'
+          files: |
+            CHANGELOG.md
+            package.json
+            package-lock.json
       - name: Create Pull Request
         run: |
           gh pr create \

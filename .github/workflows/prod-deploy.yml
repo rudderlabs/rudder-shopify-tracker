@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   extract-version:
@@ -85,17 +84,36 @@ jobs:
           echo "branch_name=$branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
 
-      - name: Update Helm Chart and Raise Pull Request For Shopify Tracker
+      - name: Create Branch in Devops Repo
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
         run: |
           cd rudder-devops
           git checkout -b shopify-tracker-$TAG_NAME ${{steps.extract_branch_name.outputs.branch_name}}
-          cd helm-charts/helm/shopify-tracking
+          git push --set-upstream origin shopify-tracker-$TAG_NAME
+
+      - name: Update Helm Chart
+        env:
+          SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
+        run: |
+          cd rudder-devops/helm-charts/helm/shopify-tracking
           yq eval -i ".image.tag=\"$TAG_NAME\"" values.yaml
           yq eval -i ".image.repository=\"$SP_IMAGE_REPOSITORY\"" values.yaml
-          git add values.yaml
-          git commit -m "chore: upgrade shopify tracker to $TAG_NAME"
-          git push -u origin shopify-tracker-$TAG_NAME
+
+      - name: Create verified commit via API
+        uses: ryancyq/github-signed-commit@e9f3b28c80da7be66d24b8f501a5abe82a6b855f # v1.2.0
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        with:
+          repository: rudderlabs/rudder-devops
+          branch-name: shopify-tracker-${{ env.TAG_NAME }}
+          commit-message: 'chore: upgrade shopify tracker to ${{ env.TAG_NAME }}'
+          files: |
+            helm-charts/helm/shopify-tracking/values.yaml
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          cd rudder-devops
           gh pr create --fill
