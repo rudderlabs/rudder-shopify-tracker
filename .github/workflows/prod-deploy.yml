@@ -67,30 +67,27 @@ jobs:
           permission-pull-requests: write # to create and update PRs
           repositories: rudder-devops # to access rudder-devops repository
 
-      - name: Initialize Mandatory Git Config
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "noreply@github.com"
-
-      - name: Clone Devops Repo
-        run: |
-          git clone https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/rudderlabs/rudder-devops.git
-
-      - name: Extract branch name
+      - name: Clone Devops Repo and Get Base SHA
         id: extract_branch_name
-        run: |
-          cd rudder-devops
-          branch_name=$(git rev-parse --abbrev-ref HEAD)
-          echo "branch_name=$branch_name"
-          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
-
-      - name: Create Branch in Devops Repo
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
+          gh repo clone rudderlabs/rudder-devops
           cd rudder-devops
-          git checkout -b shopify-tracker-$TAG_NAME ${{steps.extract_branch_name.outputs.branch_name}}
-          git push --set-upstream origin shopify-tracker-$TAG_NAME
+          branch_name=$(git rev-parse --abbrev-ref HEAD)
+          BASE_SHA=$(git rev-parse HEAD)
+          echo "branch_name=$branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+
+      - name: Create Branch in Devops Repo via GitHub API
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh api repos/rudderlabs/rudder-devops/git/refs \
+            --method POST \
+            -f ref="refs/heads/shopify-tracker-$TAG_NAME" \
+            -f sha="${{ steps.extract_branch_name.outputs.base_sha }}"
 
       - name: Update Helm Chart
         env:
