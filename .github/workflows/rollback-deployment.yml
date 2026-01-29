@@ -11,53 +11,81 @@ jobs:
     uses: ./.github/workflows/validate-actor.yml
     with:
       team_names: 'integrations'
-    secrets:
-      PAT: ${{ secrets.PAT }}
-
 
   create-rollback-pr:
-    permissions:
-      contents: write  # for Git to git push
     name: Update Helm Charts For Production and Create Pull Request
     runs-on: ubuntu-latest
     needs: validate-actor
-
-    # Only allow to be deployed from tags and main branch
-    # Only allow specific actors to trigger
+    permissions:
+      contents: read # GITHUB_TOKEN only needs read for checkout
     if: (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/main'))
-
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
         with:
           egress-policy: audit
 
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          permission-contents: write # to create commits and push changes
+          permission-pull-requests: write # to create and update PRs
+          repositories: rudder-devops # to access rudder-devops repository
+
       - name: Get Target Version
         id: target-version
-        run: |
-          version=${{ github.ref_name }}
-          echo "tag_name=$version" >> $GITHUB_OUTPUT
-          echo "Target Version: $tag_name"
-
-      # In order to make a commit, we need to initialize a user.
-      # You may choose to write something less generic here if you want, it doesn't matter functionality wise.
-      - name: Initialize Mandatory Git Config
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "noreply@github.com"
-
-      - name: Update Helm Charts and Raise Pull Request
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          git clone https://${{secrets.PAT}}@github.com/rudderlabs/rudder-devops.git
-          cd rudder-devops
-          git checkout -b rudder-shopify-tracker-rollback-${{ steps.target-version.outputs.tag_name }}
+          echo "tag_name=$REF_NAME" >> $GITHUB_OUTPUT
+          echo "Target Version: $REF_NAME"
 
-           cd helm-charts/helm/shopify-tracking
+      - name: Clone Devops Repo and Get Base SHA
+        id: devops-info
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh repo clone rudderlabs/rudder-devops
+          cd rudder-devops
+          BASE_SHA=$(git rev-parse HEAD)
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+
+      - name: Create Branch in Devops Repo via GitHub API
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh api repos/rudderlabs/rudder-devops/git/refs \
+            --method POST \
+            -f ref="refs/heads/rudder-shopify-tracker-rollback-${{ steps.target-version.outputs.tag_name }}" \
+            -f sha="${{ steps.devops-info.outputs.base_sha }}"
+
+      - name: Update Helm Charts
+        env:
+          SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
+        run: |
+          cd rudder-devops/helm-charts/helm/shopify-tracking
           yq eval -i ".image.tag=\"${{ steps.target-version.outputs.tag_name }}\"" values.yaml
           yq eval -i ".image.repository=\"$SP_IMAGE_REPOSITORY\"" values.yaml
-          git add values.yaml
-          git commit -m "chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}"
-          git push -u origin shopify-tracker-$VERSION
-          hub pull-request -m "chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}"
+
+      - name: Create verified commit via API
+        uses: ryancyq/github-signed-commit@e9f3b28c80da7be66d24b8f501a5abe82a6b855f # v1.2.0
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        with:
+          repository: rudderlabs/rudder-devops
+          branch-name: rudder-shopify-tracker-rollback-${{ steps.target-version.outputs.tag_name }}
+          commit-message: 'chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}'
+          files: |
+            helm-charts/helm/shopify-tracking/values.yaml
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          cd rudder-devops
+          gh pr create \
+            --title "chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}" \
+            --body "Automated rollback to version ${{ steps.target-version.outputs.tag_name }}"
