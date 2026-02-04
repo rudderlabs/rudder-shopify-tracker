@@ -7,8 +7,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   release:
+    permissions:
+      contents: write  # for Git to git push
     name: Publish New GitHub Release
     runs-on: ubuntu-latest
 
