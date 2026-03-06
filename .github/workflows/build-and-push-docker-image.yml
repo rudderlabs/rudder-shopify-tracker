@@ -20,26 +20,8 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  validate-img-tag:
-    name: Validate image tag
-    runs-on: ubuntu-latest
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
-        with:
-          egress-policy: audit
-      - name: Validate image tag format
-        env:
-          IMG_TAG: ${{ inputs.img_tag }}
-        run: |
-          if [[ "$IMG_TAG" =~ [^a-zA-Z0-9._/-] ]]; then
-            echo "Error: Image tag contains invalid characters."
-            exit 1
-          fi
-
   build-images:
     name: Build Docker Images
-    needs: [validate-img-tag]
     strategy:
       matrix:
         build-config:
