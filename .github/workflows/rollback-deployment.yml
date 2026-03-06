@@ -34,9 +34,10 @@ jobs:
 
       - name: Get Target Version
         id: target-version
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          version=${{ github.ref_name }}
-          echo "tag_name=$version" >> $GITHUB_OUTPUT
+          echo "tag_name=$REF_NAME" >> $GITHUB_OUTPUT
           echo "Target Version: $tag_name"
 
       # In order to make a commit, we need to initialize a user.
@@ -49,15 +50,17 @@ jobs:
       - name: Update Helm Charts and Raise Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+          TAG_NAME: ${{ steps.target-version.outputs.tag_name }}
+          SP_IMAGE_REPOSITORY: rudderstack/rudder-shopify-tracker
         run: |
           git clone https://${{secrets.PAT}}@github.com/rudderlabs/rudder-devops.git
           cd rudder-devops
-          git checkout -b rudder-shopify-tracker-rollback-${{ steps.target-version.outputs.tag_name }}
+          git checkout -b "rudder-shopify-tracker-rollback-${TAG_NAME}"
 
-           cd helm-charts/helm/shopify-tracking
-          yq eval -i ".image.tag=\"${{ steps.target-version.outputs.tag_name }}\"" values.yaml
-          yq eval -i ".image.repository=\"$SP_IMAGE_REPOSITORY\"" values.yaml
+          cd helm-charts/helm/shopify-tracking
+          yq eval -i ".image.tag=\"${TAG_NAME}\"" values.yaml
+          yq eval -i ".image.repository=\"${SP_IMAGE_REPOSITORY}\"" values.yaml
           git add values.yaml
-          git commit -m "chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}"
-          git push -u origin shopify-tracker-$VERSION
-          hub pull-request -m "chore: rollback shopify tracker to ${{ steps.target-version.outputs.tag_name }}"
+          git commit -m "chore: rollback shopify tracker to ${TAG_NAME}"
+          git push -u origin "rudder-shopify-tracker-rollback-${TAG_NAME}"
+          hub pull-request -m "chore: rollback shopify tracker to ${TAG_NAME}"

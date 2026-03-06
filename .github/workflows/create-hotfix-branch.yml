@@ -33,4 +33,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         with:
-          branch: 'hotfix/${{ inputs.hotfix_name }}'
+          branch: ${{ steps.validate-hotfix.outputs.branch }}

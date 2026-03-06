@@ -27,10 +27,11 @@ jobs:
           
       - name: Validate Branch Name
         id: validate_branch_name
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
-          # Perform input validation here
-          # For example, check for forbidden characters
-          if [[ "${{ github.head_ref }}" =~ [^a-zA-Z0-9._-/] ]]; then
+          # Use env var to prevent command injection from malicious branch names
+          if [[ "$BRANCH_NAME" =~ [^a-zA-Z0-9._/-] ]]; then
             echo "Error: Branch name contains invalid characters."
             exit 1
           fi
@@ -39,8 +40,10 @@ jobs:
       # Replace problematic characters in branch name (like '/') with safe characters (like '.')
       - name: Generate Tag Names
         id: gen_tag_names
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
-          tag_name=branch-$(echo ${{ github.head_ref }} | tr "/" .)
+          tag_name=branch-$(echo "$BRANCH_NAME" | tr "/" .)
           echo "Tag Name: $tag_name"
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
 

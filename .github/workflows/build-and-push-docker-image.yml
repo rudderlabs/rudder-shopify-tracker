@@ -20,8 +20,22 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
+  validate-img-tag:
+    name: Validate image tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate image tag format
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
+        run: |
+          if [[ "$IMG_TAG" =~ [^a-zA-Z0-9._/-] ]]; then
+            echo "Error: Image tag contains invalid characters."
+            exit 1
+          fi
+
   build-images:
     name: Build Docker Images
+    needs: [validate-img-tag]
     strategy:
       matrix:
         build-config:
@@ -89,6 +103,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-images]
     steps:
+      - name: Validate image tag
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
+        run: |
+          if [[ "$IMG_TAG" =~ [^a-zA-Z0-9._/-] ]]; then
+            echo "Error: Image tag contains invalid characters."
+            exit 1
+          fi
+
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
         with:
@@ -109,20 +132,35 @@ jobs:
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # 2.0.1
 
       - name: Create multi-arch manifest for ECR
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
         run: |
-          tag=${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:${{ inputs.img_tag }}
-          docker buildx imagetools create -t $tag $tag-amd64 $tag-arm64
+          tag="${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:${IMG_TAG}"
+          docker buildx imagetools create -t "$tag" "${tag}-amd64" "${tag}-arm64"
 
       - name: Create latest multi-arch manifest for ECR
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
         run: |
-          tag=${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:${{ inputs.img_tag }}
-          docker buildx imagetools create -t ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:latest $tag-amd64 $tag-arm64
+          tag="${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:${IMG_TAG}"
+          docker buildx imagetools create -t "${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker:latest" "${tag}-amd64" "${tag}-arm64"
 
   create-manifest-dockerhub:
     name: Create multi-arch manifest for DockerHub
     runs-on: ubuntu-latest
     needs: [build-images]
+    env:
+      IMG_TAG: ${{ inputs.img_tag }}
     steps:
+      - name: Validate image tag
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
+        run: |
+          if [[ "$IMG_TAG" =~ [^a-zA-Z0-9._/-] ]]; then
+            echo "Error: Image tag contains invalid characters."
+            exit 1
+          fi
+
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
@@ -138,11 +176,15 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create multi-arch manifest
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
         run: |
-          tag=rudderstack/rudder-shopify-tracker:${{ inputs.img_tag }}
-          docker buildx imagetools create -t $tag $tag-amd64 $tag-arm64
+          tag="rudderstack/rudder-shopify-tracker:${IMG_TAG}"
+          docker buildx imagetools create -t "$tag" "${tag}-amd64" "${tag}-arm64"
 
       - name: Create latest multi-arch manifest
+        env:
+          IMG_TAG: ${{ inputs.img_tag }}
         run: |
-          tag=rudderstack/rudder-shopify-tracker:${{ inputs.img_tag }}
-          docker buildx imagetools create -t rudderstack/rudder-shopify-tracker:latest $tag-amd64 $tag-arm64
+          tag="rudderstack/rudder-shopify-tracker:${IMG_TAG}"
+          docker buildx imagetools create -t rudderstack/rudder-shopify-tracker:latest "${tag}-amd64" "${tag}-arm64"
