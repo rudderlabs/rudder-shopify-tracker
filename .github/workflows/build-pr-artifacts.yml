@@ -11,6 +11,8 @@ jobs:
   generate-tag:
     name: Generate docker tag
     runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.head_ref }}
     outputs:
       image_tag: ${{steps.gen_tag_names.outputs.tag_name}}
     steps:
@@ -24,11 +26,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
-          
+
       - name: Validate Branch Name
         id: validate_branch_name
-        env:
-          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           # Use env var to prevent command injection from malicious branch names
           if [[ "$BRANCH_NAME" =~ [^a-zA-Z0-9._/-] ]]; then
@@ -40,8 +40,6 @@ jobs:
       # Replace problematic characters in branch name (like '/') with safe characters (like '.')
       - name: Generate Tag Names
         id: gen_tag_names
-        env:
-          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           tag_name=branch-$(echo "$BRANCH_NAME" | tr "/" .)
           echo "Tag Name: $tag_name"
