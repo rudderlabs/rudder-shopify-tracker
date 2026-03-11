@@ -28,8 +28,9 @@ jobs:
           ORG_NAME: rudderlabs
           TEAM_NAMES: ${{ inputs.team_names }}
           GH_TOKEN: ${{ secrets.PAT }}
+          ACTOR: ${{ github.actor || github.triggering_actor }}
         run: |
-          actor=${{ github.actor || github.triggering_actor }}
+          actor="$ACTOR"
           allowed=false
 
           # Split TEAM_NAMES into an array and loop through each team

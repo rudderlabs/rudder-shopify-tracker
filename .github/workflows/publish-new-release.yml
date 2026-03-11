@@ -22,8 +22,10 @@ jobs:
 
       - name: Extract Version
         id: extract-version
+        env:
+          BRANCH_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          branch_name="${{ github.event.pull_request.head.ref }}"
+          branch_name="$BRANCH_REF"
           version=${branch_name#hotfix-}
           version=${version#release/v}
 
@@ -60,22 +62,24 @@ jobs:
           HUSKY: 0
           GITHUB_TOKEN: ${{ secrets.PAT }}
           CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{ secrets.PAT }}
+          RELEASE_VERSION: ${{ steps.extract-version.outputs.release_version }}
         run: |
           git fetch --tags origin
-          git tag -a v${{ steps.extract-version.outputs.release_version }} -m "chore: release v${{ steps.extract-version.outputs.release_version }}"
-          git push origin refs/tags/v${{ steps.extract-version.outputs.release_version }}
+          git tag -a "v${RELEASE_VERSION}" -m "chore: release v${RELEASE_VERSION}"
+          git push origin "refs/tags/v${RELEASE_VERSION}"
           npm run release:github
           echo "DATE=$(date)" >> $GITHUB_ENV
 
       - name: Pull Changes Into develop Branch
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+          RELEASE_VERSION: ${{ steps.extract-version.outputs.release_version }}
         run: |
           gh pr create \
             --base develop \
             --head main \
-            --title "chore(release): pull master into develop post release v${{ steps.extract-version.outputs.release_version }}" \
+            --title "chore(release): pull master into develop post release v${RELEASE_VERSION}" \
             --body ":crown: *An automated PR*"
-        env:
-            GH_TOKEN: ${{ secrets.PAT }}
 
       - name: Notify Slack Channel
         id: slack
