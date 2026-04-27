@@ -5,6 +5,9 @@ on:
     # Run everyday at 1 AM
     - cron: '0 1 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   prs:
     name: Clean Up Stale PRs and Issues
@@ -35,6 +38,8 @@ jobs:
   branches:
     name: Cleanup Stale Branches
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
