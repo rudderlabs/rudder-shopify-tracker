@@ -117,4 +117,4 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           cd rudder-devops
-          gh pr create --fill
+          gh pr create --fill --head "shopify-tracker-$TAG_NAME"

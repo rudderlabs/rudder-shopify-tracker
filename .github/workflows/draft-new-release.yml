@@ -86,11 +86,12 @@ jobs:
       - name: Create Release Branch via GitHub API
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          BRANCH_NAME: ${{ steps.create-release.outputs.branch_name }}
         run: |
           BASE_SHA=$(git rev-parse HEAD)
           gh api repos/${{ github.repository }}/git/refs \
             --method POST \
-            -f ref="refs/heads/${{ steps.create-release.outputs.branch_name }}" \
+            -f ref="refs/heads/$BRANCH_NAME" \
             -f sha="$BASE_SHA"
 
       - name: Update Changelog & Bump Version
@@ -115,11 +116,12 @@ jobs:
             package-lock.json
 
       - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          BRANCH_NAME: ${{ steps.create-release.outputs.branch_name }}
         run: |
           gh pr create \
             --base main \
-            --head "${{ steps.create-release.outputs.branch_name }}" \
-            --title "chore(release): pull ${{ steps.create-release.outputs.branch_name }} into main" \
+            --head "$BRANCH_NAME" \
+            --title "chore(release): pull $BRANCH_NAME into main" \
             --body ":crown: *An automated PR*"
-        env:
-            GH_TOKEN: ${{ steps.generate-token.outputs.token }}
