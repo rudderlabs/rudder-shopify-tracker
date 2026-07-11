@@ -63,7 +63,7 @@ jobs:
           npm ci
 
       - name: Create verified tag via API
-        uses: ryancyq/github-signed-commit@d7cf0c334c26c08195ba1e0b40b8eb359349399e # v1.3.0
+        uses: ryancyq/github-signed-commit@cb9b21ee83578fe8e26a9eda530015aedf0c7c5b # v1.4.1
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         with:
