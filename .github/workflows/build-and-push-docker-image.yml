@@ -62,6 +62,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
       - name: Build and Push Multi-platform Images to ECR
+        id: push-ecr
         uses: rudderlabs/build-scan-push-action@8b0c8fa6e6d526c296bc1de587abb8ed2ee6e903 # v2.3.0
         with:
           context: .
@@ -71,11 +72,13 @@ jobs:
           tags: ${{ format('{0}/{1}', steps.login-ecr.outputs.registry, matrix.build-config.tags) }}
           platforms: ${{ matrix.build-config.platform }}
 
-      # Runs the pushed image before Docker Hub and the manifests see it: the
-      # Node version must equal .nvmrc, and Node must reject the eMudhra chain.
+      # Runs the pushed image by digest before Docker Hub and the manifests see
+      # it: the Node version must equal .nvmrc, and Node must reject the eMudhra
+      # chain. An outage of the test host warns instead of blocking a release.
       - name: Smoke test the image
         env:
-          IMAGE: ${{ format('{0}/{1}', steps.login-ecr.outputs.registry, matrix.build-config.tags) }}
+          IMAGE: ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker@${{ steps.push-ecr.outputs.digest }}
+          EMUDHRA_UNREACHABLE: warn
         run: scripts/image-smoke.sh "$IMAGE"
 
       - name: Login to DockerHub

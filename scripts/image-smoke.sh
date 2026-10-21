@@ -6,6 +6,10 @@
 #   - the server answers /health and stops on SIGTERM.
 #
 #   scripts/image-smoke.sh <image>
+#
+# EMUDHRA_UNREACHABLE=warn turns a network error on the eMudhra test host into
+# a warning, so an outage of that host cannot block a release. An answer from
+# the host always fails.
 set -euo pipefail
 
 image="${1:?usage: $0 <image>}"
@@ -19,7 +23,10 @@ uid="$(docker run --rm --entrypoint id "$image" -u)"
 echo "uid $uid"
 test "$uid" != "0" || { echo "::error::image runs as root"; exit 1; }
 
-# The trust store must reject the chain. A DNS or network error is not a pass.
+# The trust store must reject the chain. Exit 0: a certificate error. Exit 1:
+# the host answered, so the image trusts the chain. Exit 2: any other error,
+# such as DNS, a timeout or an expired test certificate. That is not a pass.
+status=0
 docker run --rm --entrypoint node "$image" -e '
   const url = "https://dv-g3b-emudhra.we-have-a-problem.com/";
   const certErrors = ["CERT_REVOKED", "CERT_UNTRUSTED", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "UNABLE_TO_VERIFY_LEAF_SIGNATURE"];
@@ -28,8 +35,14 @@ docker run --rm --entrypoint node "$image" -e '
     (err) => {
       const code = err.cause?.code ?? err.name;
       console.log(`emudhra ${code}`);
-      process.exit(certErrors.includes(code) ? 0 : 1);
-    });'
+      process.exit(certErrors.includes(code) ? 0 : 2);
+    });' || status=$?
+if [ "$status" = 2 ] && [ "${EMUDHRA_UNREACHABLE:-fail}" = warn ]; then
+  echo "::warning::the eMudhra test host gave no certificate verdict; the trust-store check did not run"
+elif [ "$status" != 0 ]; then
+  echo "::error::the eMudhra trust-store check failed (exit $status)"
+  exit 1
+fi
 
 name="shopify-tracker-smoke-$$"
 docker run -d --name "$name" "$image" > /dev/null

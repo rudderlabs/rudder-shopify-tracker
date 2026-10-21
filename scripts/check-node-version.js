@@ -22,7 +22,10 @@ if (!/^\d+\.\d+\.\d+$/.test(expected)) {
 }
 
 const found = [];
-for (const match of read('Dockerfile').matchAll(/^FROM\s+node:(\S+)/gim)) {
+// Matches flags such as --platform, leading spaces, and a registry prefix.
+for (const match of read('Dockerfile').matchAll(
+  /^\s*FROM\s+(?:--\S+\s+)*(?:\S+\/)?node:(\S+)/gim,
+)) {
   found.push({ where: `Dockerfile FROM node:${match[1]}`, version: match[1].split(/[-@]/)[0] });
 }
 if (found.length === 0) {
