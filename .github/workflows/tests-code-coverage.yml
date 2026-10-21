@@ -8,13 +8,19 @@ on:
   pull_request:
     types: ['opened', 'reopened', 'synchronize']
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   coverage:
     name: Tests with lint check and code coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # actions/checkout
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -27,12 +33,18 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+
+      # .nvmrc is the one Node version source. This fails when the Dockerfile
+      # or engines.node drifts from it.
+      - name: Check Node version pins
+        run: npm run check:node-version
 
       - name: Install Dependencies
         run: npm ci
@@ -60,10 +72,40 @@ jobs:
           sed -i 's+home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/coverage/lcov.info
           sed -i 's+/home/runner/work/rudderstack-shopify-tracker/rudderstack-shopify-tracker+/github/workspace+g' reports/eslint.json
 
-
-      - name: SonarCloud Scan
+      # sonarcloud-github-action is archived. sonarqube-scan-action is its
+      # successor and targets SonarQube Cloud when no SONAR_HOST_URL is set.
+      - name: SonarQube Cloud Scan
         if: always()
-        uses: SonarSource/sonarcloud-github-action@eb211723266fe8e83102bac7361f0a05c3ac1d1b # v3.0.0
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Builds the production image on both architectures without pushing it, then
+  # runs it: Node must equal .nvmrc and reject the eMudhra chain.
+  image-smoke:
+    name: Image smoke test (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    permissions:
+      contents: read # actions/checkout
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build the production image
+        run: docker build --target production -t shopify-tracker:smoke .
+
+      - name: Smoke test the image
+        run: scripts/image-smoke.sh shopify-tracker:smoke

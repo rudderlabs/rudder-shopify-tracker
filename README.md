@@ -33,6 +33,17 @@ This is simple node server with koa router. Steps to run locally:
 1. `npm install`
 2. `npm run start`
 
+## How to bump the runtime
+
+`.nvmrc` holds the one Node version. CI installs Node from it. To move to a new Node patch:
+
+1. Set the version in `.nvmrc`.
+2. Set the same version in the `FROM node:` line of `Dockerfile`, with the new tag and its index digest. Resolve the digest with `docker buildx imagetools inspect node:<version>-alpine<alpine-version>`.
+3. Set `engines.node` in `package.json` and in the root package entry of `package-lock.json`.
+4. Run `npm run check:node-version`. It fails when one of these places differs from `.nvmrc`.
+
+Dependabot bumps the `FROM` line, but not `.nvmrc` or `engines.node`. Its Node PR fails the check until you update both. The image build also fails when the Node binary in the image differs from `.nvmrc`. `scripts/image-smoke.sh <image>` runs a built image and checks the Node version, the user and the trust store.
+
 ## Features
 
 It is a smart tracking script which inserts into the Shopify store pages, and allows client-side tracking. Please note, this works in conjunction to the above-mentioned RudderStack Shopify App.

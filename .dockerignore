@@ -1,4 +1,6 @@
 *
 !src
 !.npmrc
-!package*.json
+!.nvmrc
+!package.json
+!package-lock.json
