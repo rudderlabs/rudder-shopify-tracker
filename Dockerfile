@@ -7,7 +7,7 @@ FROM node:24.22.1-alpine3.24@sha256:6a1c190e17215d844926b0677f4bf87273ff7d5e54db
 # so only the binary proves which Node shipped. A FROM tag that drifts from
 # .nvmrc fails the build here.
 COPY .nvmrc /node-version.expected
-RUN expected="$(sed 's/^v//' /node-version.expected)" \
+RUN expected="$(sed 's/^v//' /node-version.expected | tr -d '[:space:]')" \
  && actual="$(node -p process.versions.node)" \
  && { test "$actual" = "$expected" || { echo "image ships Node $actual, .nvmrc declares $expected"; exit 1; }; }
 
@@ -29,7 +29,7 @@ COPY package.json package-lock.json .npmrc ./
 FROM base AS development
 # uid 1000 is the base image's `node` user. The development image keeps the
 # tree writable for it, as before, so nodemon and npm work inside it.
-RUN chown 1000:1000 /home/node/app
+RUN chown -R 1000:1000 /home/node/app
 USER 1000
 RUN npm ci --no-audit --cache /tmp/.npm && rm -rf /tmp/.npm
 COPY --chown=1000:1000 src ./src

@@ -86,15 +86,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and Push Multi-platform Images to DockerHub
-        uses: rudderlabs/build-scan-push-action@8b0c8fa6e6d526c296bc1de587abb8ed2ee6e903 # v2.3.0
-        with:
-          context: .
-          file: Dockerfile
-          target: ${{ inputs.target }}
-          push: true
-          tags: ${{ matrix.build-config.tags }}
-          platforms: ${{ matrix.build-config.platform }}
+      # Copies the smoke-tested ECR image to Docker Hub, so both registries
+      # serve the same digest. A second build could resolve newer packages.
+      - name: Copy the tested image to DockerHub
+        env:
+          SOURCE: ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker@${{ steps.push-ecr.outputs.digest }}
+          TARGET: ${{ matrix.build-config.tags }}
+        run: docker buildx imagetools create -t "docker.io/$TARGET" "$SOURCE"
 
   create-manifest-ecr:
     name: Create multi-arch manifest for ECR
