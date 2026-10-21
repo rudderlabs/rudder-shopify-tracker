@@ -8,8 +8,8 @@
 #   scripts/image-smoke.sh <image>
 #
 # The trust-store check fails closed. It passes only on a certificate-chain
-# error from the eMudhra test host, and only when the control host connects,
-# so an image with no CA roots cannot pass. EMUDHRA_UNREACHABLE=warn turns a
+# error from the eMudhra test host, and only when the control host connects
+# over TLS, so a broken network or TLS stack cannot pass as a rejection. EMUDHRA_UNREACHABLE=warn turns a
 # DNS or connection error on the test host into a warning, so an outage of
 # that host cannot block a release. Every other error fails.
 set -euo pipefail
@@ -30,12 +30,12 @@ docker run --rm -e EMUDHRA_UNREACHABLE="${EMUDHRA_UNREACHABLE:-fail}" --entrypoi
   const unreachable = ["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT"];
   const probe = (url) => fetch(url, { redirect: "manual", signal: AbortSignal.timeout(30000) }).then(
     (res) => ({ status: res.status }),
-    (err) => ({ code: err.code ?? err.cause?.code ?? err.name }));
+    (err) => ({ code: err.name === "TimeoutError" ? "TimeoutError" : (err.code ?? err.cause?.code ?? err.name) }));
   (async () => {
     const control = await probe("https://api.stripe.com/");
     console.log(`control api.stripe.com ${control.status ?? control.code}`);
     if (control.status === undefined) {
-      console.log("::error::the control host did not connect over TLS: the image has no working CA roots or no network");
+      console.log("::error::the control host did not connect over TLS");
       process.exit(1);
     }
     const url = "https://dv-g3b-emudhra.we-have-a-problem.com/";
