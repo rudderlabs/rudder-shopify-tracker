@@ -79,30 +79,3 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  # Builds the production image on both architectures without pushing it. The
-  # Dockerfile fails on a Node binary that differs from .nvmrc and on an old CA bundle.
-  image-build:
-    name: Image build (${{ matrix.runner }})
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    permissions:
-      contents: read # actions/checkout
-    strategy:
-      matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Build the production image
-        run: docker build --target production -t shopify-tracker:pr .

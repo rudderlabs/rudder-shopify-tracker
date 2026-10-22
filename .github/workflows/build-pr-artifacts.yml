@@ -7,23 +7,32 @@ on:
       - reopened
       - synchronize
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  generate-tag:
-    name: Generate docker tag
-    # The build runs on self-hosted ARC runners and pushes to ECR, so fork PRs skip it.
-    # Dependabot PRs skip it too: their runs get no Docker Hub secrets.
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
-    runs-on: ubuntu-latest
-    env:
-      BRANCH_NAME: ${{ github.head_ref }}
-    outputs:
-      image_tag: ${{steps.gen_tag_names.outputs.tag_name}}
+  # PR builds are build-only: GitHub-hosted runners, no registry login, no
+  # push and no cloud credentials. PR code can edit this workflow, so a PR
+  # job must hold nothing that publishes an image. Each arch builds natively.
+  # The Dockerfile fails on a Node binary that differs from .nvmrc and on an
+  # old CA bundle.
+  build-only:
+    name: Build ${{ matrix.target }} image (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    permissions:
+      contents: read # actions/checkout
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        target: [development, production]
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
         with:
           egress-policy: audit
 
@@ -34,34 +43,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Validate Branch Name
-        id: validate_branch_name
-        run: |
-          # Use env var to prevent command injection from malicious branch names
-          if [[ "$BRANCH_NAME" =~ [^a-zA-Z0-9._/-] ]]; then
-            echo "Error: Branch name contains invalid characters."
-            exit 1
-          fi
-
-
-      # Replace problematic characters in branch name (like '/') with safe characters (like '.')
-      - name: Generate Tag Names
-        id: gen_tag_names
-        run: |
-          tag_name=branch-$(echo "$BRANCH_NAME" | tr "/" .)
-          echo "Tag Name: $tag_name"
-          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
-
-  build:
-    name: Build Shopify Tracker Docker Image
-    uses: ./.github/workflows/build-and-push-docker-image.yml
-    needs: [generate-tag]
-    permissions:
-      contents: read # reusable workflow checkout
-      id-token: write # reusable workflow ECR authentication via OIDC
-    with:
-      img_tag: ${{ needs.generate-tag.outputs.image_tag }}
-      target: development
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build the image
+        env:
+          TARGET: ${{ matrix.target }}
+        run: docker build --target "$TARGET" -t "shopify-tracker:pr-$TARGET" .
