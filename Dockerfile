@@ -16,11 +16,13 @@ RUN expected="$(sed 's/^v//' /node-version.expected | tr -d '[:space:]')" \
 # an older bundle; 20261020 removes the compromised eMudhra intermediates. The
 # build fails on an older bundle, and when apk cannot report the version.
 RUN apk --no-cache upgrade \
- && apk --no-cache add tini \
- && bundle="$(apk query --fields version ca-certificates-bundle)" \
- && bundle="${bundle#Version: }" \
- && cmp="$(apk version -t "$bundle" 20261020-r0)" \
- && case "$cmp" in "="|">") ;; *) echo "ca-certificates-bundle '$bundle' is not 20261020-r0 or newer"; exit 1;; esac
+ && apk --no-cache add tini
+RUN set -eu; \
+    installed="$(apk info -v)"; \
+    bundle="$(printf '%s\n' "$installed" | sed -n 's/^ca-certificates-bundle-\([0-9]\{8\}-r[0-9][0-9]*\)$/\1/p')"; \
+    test -n "$bundle"; \
+    cmp="$(apk version -t "$bundle" 20261020-r0)"; \
+    case "$cmp" in "="|">") ;; *) echo "ca-certificates-bundle '$bundle' is older than 20261020-r0" >&2; exit 1 ;; esac
 
 ENV HUSKY=0
 WORKDIR /home/node/app

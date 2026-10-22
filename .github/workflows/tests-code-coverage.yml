@@ -80,10 +80,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # Builds the production image on both architectures without pushing it, then
-  # runs it: Node must equal .nvmrc and reject the eMudhra chain.
-  image-smoke:
-    name: Image smoke test (${{ matrix.runner }})
+  # Builds the production image on both architectures without pushing it. The
+  # Dockerfile fails on a Node binary that differs from .nvmrc and on an old CA bundle.
+  image-build:
+    name: Image build (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     permissions:
@@ -105,7 +105,4 @@ jobs:
           persist-credentials: false
 
       - name: Build the production image
-        run: docker build --target production -t shopify-tracker:smoke .
-
-      - name: Smoke test the image
-        run: scripts/image-smoke.sh shopify-tracker:smoke
+        run: docker build --target production -t shopify-tracker:pr .

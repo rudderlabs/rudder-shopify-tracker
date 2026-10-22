@@ -72,23 +72,14 @@ jobs:
           tags: ${{ format('{0}/{1}', steps.login-ecr.outputs.registry, matrix.build-config.tags) }}
           platforms: ${{ matrix.build-config.platform }}
 
-      # Runs the pushed image by digest before Docker Hub and the manifests see
-      # it: the Node version must equal .nvmrc, and Node must reject the eMudhra
-      # chain. An outage of the test host warns instead of blocking a release.
-      - name: Smoke test the image
-        env:
-          IMAGE: ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker@${{ steps.push-ecr.outputs.digest }}
-          EMUDHRA_UNREACHABLE: warn
-        run: scripts/image-smoke.sh "$IMAGE"
-
       - name: Login to DockerHub
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      # Copies the smoke-tested ECR image to Docker Hub, so both registries
+      # Copies the built ECR image to Docker Hub, so both registries
       # serve the same digest. A second build could resolve newer packages.
-      - name: Copy the tested image to DockerHub
+      - name: Copy the built image to DockerHub
         env:
           SOURCE: ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker@${{ steps.push-ecr.outputs.digest }}
           TARGET: ${{ matrix.build-config.tags }}

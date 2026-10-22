@@ -13,6 +13,8 @@ permissions:
 jobs:
   generate-tag:
     name: Generate docker tag
+    # The build runs on self-hosted ARC runners and pushes to ECR, so fork PRs skip it.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     env:
       BRANCH_NAME: ${{ github.head_ref }}
@@ -46,12 +48,15 @@ jobs:
         run: |
           tag_name=branch-$(echo "$BRANCH_NAME" | tr "/" .)
           echo "Tag Name: $tag_name"
-          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build Shopify Tracker Docker Image
     uses: ./.github/workflows/build-and-push-docker-image.yml
     needs: [generate-tag]
+    permissions:
+      contents: read # reusable workflow checkout
+      id-token: write # reusable workflow ECR authentication via OIDC
     with:
       img_tag: ${{ needs.generate-tag.outputs.image_tag }}
       target: development
