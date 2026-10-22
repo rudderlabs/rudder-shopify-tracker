@@ -14,7 +14,8 @@ jobs:
   generate-tag:
     name: Generate docker tag
     # The build runs on self-hosted ARC runners and pushes to ECR, so fork PRs skip it.
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    # Dependabot PRs skip it too: their runs get no Docker Hub secrets.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     env:
       BRANCH_NAME: ${{ github.head_ref }}
@@ -31,6 +32,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Validate Branch Name
         id: validate_branch_name
