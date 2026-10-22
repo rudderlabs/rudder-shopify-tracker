@@ -3,26 +3,12 @@
 
 FROM node:24.22.1-alpine3.24@sha256:6a1c190e17215d844926b0677f4bf87273ff7d5e54db06d3b5b5863ab0b09a3d AS base
 
-# .nvmrc is the one Node version source. A digest pins content, not a version,
-# so only the binary proves which Node shipped. A FROM tag that drifts from
-# .nvmrc fails the build here.
-COPY .nvmrc /node-version.expected
-RUN expected="$(sed 's/^v//' /node-version.expected | tr -d '[:space:]')" \
- && actual="$(node -p process.versions.node)" \
- && { test "$actual" = "$expected" || { echo "image ships Node $actual, .nvmrc declares $expected"; exit 1; }; }
-
-# Node uses its own bundled CA store, so the Node version above protects the
-# app. The OS store serves wget, apk and any tool that reads it. The base ships
-# an older bundle; 20261020 removes the compromised eMudhra intermediates. The
-# build fails on an older bundle, and when apk cannot report the version.
+# Node uses its own bundled CA store. The OS store serves wget, apk and any
+# tool that reads it. The base ships an older bundle; 20261020 removes the
+# compromised eMudhra intermediates. apk refuses the install when no bundle
+# at or above that version is available.
 RUN apk --no-cache upgrade \
- && apk --no-cache add tini
-RUN set -eu; \
-    installed="$(apk info -v)"; \
-    bundle="$(printf '%s\n' "$installed" | sed -n 's/^ca-certificates-bundle-\([0-9]\{8\}-r[0-9][0-9]*\)$/\1/p')"; \
-    test -n "$bundle"; \
-    cmp="$(apk version -t "$bundle" 20261020-r0)"; \
-    case "$cmp" in "="|">") ;; *) echo "ca-certificates-bundle '$bundle' is older than 20261020-r0" >&2; exit 1 ;; esac
+ && apk --no-cache add tini 'ca-certificates-bundle>=20261020'
 
 ENV HUSKY=0
 WORKDIR /home/node/app

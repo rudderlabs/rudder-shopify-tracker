@@ -17,8 +17,7 @@ jobs:
   # PR builds are build-only: GitHub-hosted runners, no registry login, no
   # push and no cloud credentials. PR code can edit this workflow, so a PR
   # job must hold nothing that publishes an image. Each arch builds natively.
-  # The Dockerfile fails on a Node binary that differs from .nvmrc and on an
-  # old CA bundle.
+  # apk fails the build when no ca-certificates-bundle>=20261020 is available.
   build-only:
     name: Build ${{ matrix.target }} image (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}

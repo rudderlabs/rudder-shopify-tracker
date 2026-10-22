@@ -42,7 +42,7 @@ This is simple node server with koa router. Steps to run locally:
 3. Set `engines.node` in `package.json` and in the root package entry of `package-lock.json`.
 4. Run `npm run check:node-version`. It fails when one of these places differs from `.nvmrc`.
 
-Dependabot bumps the `FROM` line, but not `.nvmrc` or `engines.node`. Its Node PR fails the check until you update both. The image build also fails when the Node binary in the image differs from `.nvmrc`. It also fails when the installed CA bundle is older than 20261020-r0.
+Dependabot bumps the `FROM` line, but not `.nvmrc` or `engines.node`. Its Node PR fails the check until you update both. The Dockerfile installs `ca-certificates-bundle>=20261020`, and apk fails the build when no such package exists.
 
 ## Features
 

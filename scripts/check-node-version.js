@@ -7,7 +7,6 @@
  * CI's setup-node reads .nvmrc directly. The places it cannot reach are checked
  * here: every `FROM node:` tag in the Dockerfile and `engines.node` in
  * package.json and package-lock.json. A Node bump that misses one fails CI.
- * The Dockerfile also checks the binary inside the image against .nvmrc.
  */
 const fs = require('fs');
 const path = require('path');
