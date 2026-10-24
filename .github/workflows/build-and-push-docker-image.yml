@@ -83,7 +83,7 @@ jobs:
         env:
           SOURCE: ${{ steps.login-ecr.outputs.registry }}/rudderstack/rudder-shopify-tracker@${{ steps.push-ecr.outputs.digest }}
           TARGET: ${{ matrix.build-config.tags }}
-        run: docker buildx imagetools create -t "docker.io/$TARGET" "$SOURCE"
+        run: docker buildx imagetools create --prefer-index=false -t "docker.io/$TARGET" "$SOURCE"
 
   create-manifest-ecr:
     name: Create multi-arch manifest for ECR
