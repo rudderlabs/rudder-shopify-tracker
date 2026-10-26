@@ -63,7 +63,7 @@ jobs:
 
       - name: Build and Push Multi-platform Images to ECR
         id: push-ecr
-        uses: rudderlabs/build-scan-push-action@8b0c8fa6e6d526c296bc1de587abb8ed2ee6e903 # v2.3.0
+        uses: rudderlabs/build-scan-push-action@c47115e5eab78162efec1b4961cba4063dfd8d5f # v2.4.0
         with:
           context: .
           file: Dockerfile
