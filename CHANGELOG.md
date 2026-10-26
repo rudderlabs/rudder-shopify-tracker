@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.4](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.7.3...v1.7.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **ci:** pass the release App key to validate-actor ([#340](https://github.com/rudderlabs/rudder-shopify-tracker/issues/340)) ([c193ff8](https://github.com/rudderlabs/rudder-shopify-tracker/commit/c193ff8123b8b9913404c1b4484b23b2ad32e650)), closes [#290](https://github.com/rudderlabs/rudder-shopify-tracker/issues/290) [#290](https://github.com/rudderlabs/rudder-shopify-tracker/issues/290)
+
 ### [1.7.3](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.7.2...v1.7.3) (2026-01-07)
 
 ### [1.7.2](https://github.com/rudderlabs/rudder-shopify-tracker/compare/v1.7.1...v1.7.2) (2026-01-07)
