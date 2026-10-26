@@ -1,22 +1,53 @@
 name: Check PR Title
 
+# Squash merge makes the PR title the commit subject on the base branch,
+# and the release changelog reads these subjects. Branch commit messages
+# are not checked.
 on:
   pull_request:
     types:
       - opened
       - edited
       - reopened
+      - converted_to_draft
+      - ready_for_review
       - synchronize
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   check-pr-title:
     name: Check PR Title
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read # action-semantic-pull-request reads the PR
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
       - name: Check PR Title
-        uses: rudderlabs/github-action-check-pr-title@29308e12984bdb3f3dcf8dcec3308f4f4652529c # v1.0.7
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            fix
+            feat
+            chore
+            refactor
+            docs
+            test
+          requireScope: false
+          # No ASCII uppercase letter or space first, no "." or space last.
+          subjectPattern: ^(?![A-Z\s]).+(?<![.\s])$
+          subjectPatternError: |
+            The subject "{subject}" in the pull request title "{title}"
+            must not start with an uppercase character or a space, and must
+            not end with a period or a space.

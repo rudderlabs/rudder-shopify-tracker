@@ -2,34 +2,43 @@ name: Validate Actor
 
 on:
   workflow_call:
-    secrets:
-      PAT:
-        required: true
     inputs:
       team_names:
         description: 'Comma-separated list of team names'
         type: string
         default: 'integrations'
+    secrets:
+      RELEASE_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: read
 
 jobs:
   validate-actor:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-amd64
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           egress-policy: audit
+
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          permission-members: read # to check org team membership
 
       - name: Validate if actor is allowed to trigger the workflow
         env:
           ORG_NAME: rudderlabs
           TEAM_NAMES: ${{ inputs.team_names }}
-          GH_TOKEN: ${{ secrets.PAT }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          ACTOR: ${{ github.actor || github.triggering_actor }}
         run: |
-          actor=${{ github.actor || github.triggering_actor }}
+          actor="$ACTOR"
           allowed=false
 
           # Split TEAM_NAMES into an array and loop through each team

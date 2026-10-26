@@ -7,30 +7,45 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Publish New GitHub Release
     runs-on: ubuntu-latest
-
-    if: (startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true # only merged pull requests must trigger this job
+    permissions:
+      contents: read # GITHUB_TOKEN only needs read for checkout
+    if: (startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'hotfix-release/')) && github.event.pull_request.merged == true
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           egress-policy: audit
 
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          permission-contents: write # to create tags, releases, and push commits
+          permission-pull-requests: write # to create and update PRs
+
       - name: Extract Version
         id: extract-version
+        env:
+          BRANCH_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          branch_name="${{ github.event.pull_request.head.ref }}"
+          branch_name="$BRANCH_REF"
           version=${branch_name#hotfix-}
           version=${version#release/v}
 
           echo "release_version=$version" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -47,35 +62,36 @@ jobs:
         run: |
           npm ci
 
-      # In order to make a commit, we need to initialize a user.
-      # You may choose to write something less generic here if you want, it doesn't matter functionality wise.
-      - name: Initialize Mandatory Git Config
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "noreply@github.com"
+      - name: Create verified tag via API
+        uses: ryancyq/github-signed-commit@cb9b21ee83578fe8e26a9eda530015aedf0c7c5b # v1.4.1
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        with:
+          branch-name: main
+          commit-message: 'chore: release v${{ steps.extract-version.outputs.release_version }}'
+          tag: 'v${{ steps.extract-version.outputs.release_version }}'
+          files: ''
 
-      - name: Tag & Create GitHub Release
+      - name: Create GitHub Release
         id: create_release
         env:
           HUSKY: 0
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          git fetch --tags origin
-          git tag -a v${{ steps.extract-version.outputs.release_version }} -m "chore: release v${{ steps.extract-version.outputs.release_version }}"
-          git push origin refs/tags/v${{ steps.extract-version.outputs.release_version }}
           npm run release:github
           echo "DATE=$(date)" >> $GITHUB_ENV
 
       - name: Pull Changes Into develop Branch
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          RELEASE_VERSION: ${{ steps.extract-version.outputs.release_version }}
         run: |
           gh pr create \
             --base develop \
             --head main \
-            --title "chore(release): pull master into develop post release v${{ steps.extract-version.outputs.release_version }}" \
+            --title "chore(release): pull master into develop post release v${RELEASE_VERSION}" \
             --body ":crown: *An automated PR*"
-        env:
-            GH_TOKEN: ${{ secrets.PAT }}
 
       - name: Notify Slack Channel
         id: slack
