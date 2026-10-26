@@ -7,9 +7,13 @@ permissions:
 
 jobs:
   validate-actor:
+    permissions:
+      contents: read # to call reusable workflow (validate-actor.yml)
     uses: ./.github/workflows/validate-actor.yml
     with:
       team_names: 'integrations'
+    secrets:
+      RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
 
   draft-new-release:
     name: Draft New Release
