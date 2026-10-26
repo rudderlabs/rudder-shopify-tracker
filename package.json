@@ -3,14 +3,17 @@
   "version": "1.7.2",
   "description": "Tracks client-side events on Shopify stores",
   "main": "src/main.js",
+  "engines": {
+    "node": "24.22.1"
+  },
   "scripts": {
     "start": "node src/main.js",
     "release": "npx standard-version",
     "release:github": "DEBUG=conventional-github-releaser npx conventional-github-releaser -p angular --config github-release.config.js",
-    "commit-msg": "commitlint --edit",
     "test": "jest --passWithNoTests",
     "pre-commit": "npx lint-staged",
-    "check:lint": "eslint . -f json -o reports/eslint.json || exit 0"
+    "check:lint": "eslint . -f json -o reports/eslint.json || exit 0",
+    "check:node-version": "node scripts/check-node-version.js"
   },
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
@@ -21,7 +24,6 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.16.0",
-    "commitlint": "^19.8.1",
     "conventional-github-releaser": "^3.1.5",
     "dotenv": "^15.0.0",
     "husky": "^9.1.7",
@@ -31,7 +33,6 @@
     "standard-version": "^9.5.0"
   },
   "devDependencies": {
-    "@commitlint/config-conventional": "^17.6.3",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-json": "^3.1.0",
