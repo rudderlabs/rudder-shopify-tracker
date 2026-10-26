@@ -28,7 +28,7 @@
     "dotenv": "^15.0.0",
     "husky": "^9.1.7",
     "koa": "^2.16.4",
-    "koa-router": "^10.1.1",
+    "koa-router": "^14.0.0",
     "lint-staged": "^16.0.0",
     "standard-version": "^9.5.0"
   },
