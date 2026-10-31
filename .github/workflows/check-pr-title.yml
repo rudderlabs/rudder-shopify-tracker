@@ -24,8 +24,8 @@ jobs:
     name: Check PR Title
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      pull-requests: read # action-semantic-pull-request reads the PR
+    # No token: the action reads the title from the event payload.
+    permissions: {}
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -33,9 +33,7 @@ jobs:
           egress-policy: audit
 
       - name: Check PR Title
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: rudderlabs/github-action-check-pr-title@3967756a96b89133e6cd700a8384a1e2b95cb21c # v2.0.3
         with:
           types: |
             fix
