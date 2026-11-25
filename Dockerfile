@@ -28,6 +28,10 @@ CMD ["node", "src/main.js"]
 
 FROM base AS production
 RUN npm ci --no-audit --omit=dev --cache /tmp/.npm && rm -rf /tmp/.npm
+# The runtime needs only node. Drop npm, corepack and yarn and their CVEs.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-v1.22.22
 COPY src ./src
 # The app writes no files, so the production code stays root-owned.
 USER 1000
